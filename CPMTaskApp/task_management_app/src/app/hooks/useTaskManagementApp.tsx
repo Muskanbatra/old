@@ -3,6 +3,7 @@ import React, {
   useEffect,
   useEffectEvent,
   useMemo,
+  useRef,
   useState,
 } from 'react';
 import { AppState } from 'react-native';
@@ -98,6 +99,8 @@ export function useTaskManagementApp() {
   const [isTasksLoading, setIsTasksLoading] = useState(false);
   const [isSavingUser, setIsSavingUser] = useState(false);
   const [isSavingTask, setIsSavingTask] = useState(false);
+  const taskRefreshInFlightRef = useRef(false);
+  const lastTaskRefreshAtRef = useRef(0);
   const [taskForm, setTaskForm] = useState({
     title: '',
     description: '',
@@ -387,6 +390,34 @@ export function useTaskManagementApp() {
     }
   };
 
+  const refreshRelatedTasks = useEffectEvent(async (options?: {
+    force?: boolean;
+    silent?: boolean;
+  }) => {
+    if (!authToken || taskRefreshInFlightRef.current) {
+      return;
+    }
+
+    const now = Date.now();
+
+    if (!options?.force && now - lastTaskRefreshAtRef.current < 1500) {
+      return;
+    }
+
+    taskRefreshInFlightRef.current = true;
+
+    try {
+      await fetchRelatedTasks(authToken, {
+        silent: options?.silent ?? true,
+      });
+      lastTaskRefreshAtRef.current = Date.now();
+    } catch (error) {
+      setTaskActionError(getErrorMessage(error));
+    } finally {
+      taskRefreshInFlightRef.current = false;
+    }
+  });
+
   const resetForgotPasswordState = (options?: { keepEmail?: boolean }) => {
     if (!options?.keepEmail) {
       setForgotPasswordEmail('');
@@ -489,11 +520,38 @@ export function useTaskManagementApp() {
     const subscription = AppState.addEventListener('change', nextState => {
       if (nextState === 'active') {
         setClockTick(Date.now());
+        refreshRelatedTasks({ force: true });
       }
     });
 
     return () => subscription.remove();
-  }, []);
+  }, [authToken]);
+
+  useEffect(() => {
+    if (!authToken || !currentUser) {
+      return;
+    }
+
+    refreshRelatedTasks({ force: true });
+
+    const refreshInterval = setInterval(() => {
+      refreshRelatedTasks();
+    }, 5000);
+
+    return () => clearInterval(refreshInterval);
+  }, [authToken, currentUser]);
+
+  useEffect(() => {
+    if (
+      !authToken ||
+      !currentUser ||
+      !['myTasks', 'createTask', 'notifications'].includes(screen)
+    ) {
+      return;
+    }
+
+    refreshRelatedTasks({ force: true });
+  }, [authToken, currentUser, screen]);
 
   const syncDashboardTabForScreen = (targetScreen: Screen) => {
     if (targetScreen === 'dashboard') {
