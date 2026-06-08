@@ -18,4 +18,9 @@ export const attendanceService = {
       data,
     );
   },
+   getTodayAttendance: () => {
+    return axios.get(
+      `${BASE_URL}/attendance/today`,
+    );
+  },
 };

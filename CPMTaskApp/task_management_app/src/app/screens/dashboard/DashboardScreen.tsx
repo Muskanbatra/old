@@ -14,6 +14,7 @@ import { styles } from '../../theme/styles';
 import { DateRangePicker, type DateRange } from './DateRangePicker';
 import type { ScreenRendererProps } from '../types';
 import AttendanceScreen from '../attendance/AttendanceScreen';
+import TodayAttendanceTable from '../attendance/TodayAttendanceTable';
 
 type DashboardScreenProps = Pick<
   ScreenRendererProps,
@@ -29,11 +30,10 @@ type DashboardScreenProps = Pick<
   | 'notifications'
   | 'openNotification'
 > & {
-    currentUserName?: string;
+  currentUserName?: string;
 };
 
 const DATE_FILTER_DAYS = 7;
-
 function getDateKey(value?: string) {
   if (!value) {
     return '';
@@ -141,7 +141,7 @@ export function DashboardScreen(props: DashboardScreenProps) {
     renderDashboardNavItem,
     getUserName,
   } = props;
-
+  // console.log('Current User:', currentUser);
   const myTasks = tasks.filter(
     task =>
       task.assignedTo === currentUser?.id ||
@@ -227,7 +227,8 @@ export function DashboardScreen(props: DashboardScreenProps) {
       userId: task.assignedTo,
       userName: getUserName(task.assignedTo),
       pending: task.status === 'pending' ? 1 : 0,
-      review: task.status === 'under_review' || task.status === 'rejected' ? 1 : 0,
+      review:
+        task.status === 'under_review' || task.status === 'rejected' ? 1 : 0,
       done: task.status === 'completed' ? 1 : 0,
       total: 1,
     });
@@ -254,7 +255,7 @@ export function DashboardScreen(props: DashboardScreenProps) {
   return (
     <SafeAreaView style={styles.page}>
       <ScrollView contentContainerStyle={styles.dashboardScroll}>
-        <AttendanceScreen/>
+       
         <View style={styles.heroCard}>
           <GradientSurface style={styles.heroGradient} />
           <View style={styles.heroTopRow}>
@@ -289,10 +290,13 @@ export function DashboardScreen(props: DashboardScreenProps) {
             ))}
           </View>
         </View>
+         <AttendanceScreen
+          userId={String(currentUser?.backendId ?? currentUser?.id ?? '')}
+        />
+        <TodayAttendanceTable getUserName={getUserName} />
 
         <SectionCard title="">
           <View style={styles.chartHighlightCard}>
-            {/* <Text style={styles.chartHighlightEyebrow}>BEST DAY</Text> */}
             <View
               style={{ flexDirection: 'row', alignItems: 'center', gap: 50 }}
             >
@@ -330,61 +334,7 @@ export function DashboardScreen(props: DashboardScreenProps) {
               </View>
             </View>
           </View>
-          <View style={styles.analyticsStack}>
-            <View style={styles.analyticsCardPrimary}>
-              {/* <View style={styles.dashboardPerformanceSummary}>
-                <View style={styles.dashboardPerformanceMetric}>
-                  <Text style={styles.dashboardPerformanceLabel}>Completed</Text>
-                  <Text style={styles.dashboardPerformanceValue}>{weeklyCompleted}</Text>
-                </View>
-                <View style={styles.dashboardPerformanceMetric}>
-                  <Text style={styles.dashboardPerformanceLabel}>Assigned</Text>
-                  <Text style={styles.dashboardPerformanceValue}>{weeklyAssigned}</Text>
-                </View>
-                <View style={styles.dashboardPerformanceMetric}>
-                  <Text style={styles.dashboardPerformanceLabel}>Completion</Text>
-                  <Text style={styles.dashboardPerformanceValue}>{weeklyCompletionRate}%</Text>
-                </View>
-              </View> */}
-
-              <View style={styles.chartCard}>
-                {weeklyData.map(item => (
-                  <Pressable
-                    key={item.dateKey}
-                    onPress={() => setSelectedChartKey(item.dateKey)}
-                    onHoverIn={() => setSelectedChartKey(item.dateKey)}
-                    style={styles.chartColumn}
-                  >
-                    <View style={styles.chartBarTrack}>
-                      <View
-                        style={[
-                          styles.chartBarAssigned,
-                          { height: Math.max(18, item.assigned * 10) },
-                        ]}
-                      />
-                      <View
-                        style={[
-                          styles.chartBarCompleted,
-                          { height: Math.max(12, item.completed * 10) },
-                        ]}
-                      />
-                    </View>
-                    <Text
-                      style={[
-                        styles.chartLabel,
-                        selectedChartPoint.dateKey === item.dateKey &&
-                          styles.chartLabelActive,
-                      ]}
-                    >
-                      {item.label}
-                    </Text>
-                  </Pressable>
-                ))}
-              </View>
-            </View>
-          </View>
         </SectionCard>
-
         <DateRangePicker
           visible={showDateRangePicker}
           value={dateRange}
@@ -394,94 +344,6 @@ export function DashboardScreen(props: DashboardScreenProps) {
             setSelectedChartKey(range.endDate);
           }}
         />
-
-        {/* <View style={styles.analyticsCardSecondary}>
-          <Text style={styles.analyticsTitle}>Task Distribution</Text>
-          <Text style={styles.chartIntro}>
-            How your current workload is spread across stages.
-          </Text>
-          <View style={styles.distributionWrap}>
-            {distributionData.map(item => (
-              <View key={item.label} style={styles.distributionRow}>
-                <View style={styles.distributionHeader}>
-                  <View style={styles.distributionLabelWrap}>
-                    <Text style={styles.distributionLabel}>{item.label}</Text>
-                  </View>
-                  <Text style={styles.distributionValue}>{item.value}</Text>
-                </View>
-                <View style={styles.distributionTrack}>
-                  <View
-                    style={[
-                      styles.distributionFill,
-                      {
-                        width: `${Math.max(12, (item.value / maxDistribution) * 100)}%`,
-                        backgroundColor: item.color,
-                      },
-                    ]}
-                  />
-                </View>
-              </View>
-            ))}
-          </View>
-        </View> */}
-
-        {/* <SectionCard
-          title="Notifications"
-          actionLabel="See all"
-          onAction={() => setScreen('notifications')}>
-          <View style={styles.dashboardNotificationStatusCard}>
-            <View style={styles.flexOne}>
-              <Text style={styles.dashboardNotificationStatusTitle}>
-                {pushStatusCopy.label}
-              </Text>
-              <Text style={styles.dashboardNotificationStatusText}>
-                {pushStatusCopy.description}
-              </Text>
-            </View>
-            <View style={styles.dashboardNotificationStatusBadge}>
-              <Text style={styles.dashboardNotificationStatusBadgeText}>
-                {unreadNotifications} unread
-              </Text>
-            </View>
-          </View>
-
-          {pushNotificationToken ? (
-            <Text style={styles.dashboardNotificationToken}>
-              FCM token ready: {pushNotificationToken.slice(0, 18)}...
-            </Text>
-          ) : null}
-
-          {recentNotifications.length ? (
-            recentNotifications.map(notification => (
-              <Pressable
-                key={notification.id}
-                onPress={() => openNotification(notification)}
-                style={[
-                  styles.notificationCard,
-                  !notification.read && styles.notificationCardUnread,
-                ]}>
-                <View style={styles.notificationIconWrap}>
-                  <Text style={styles.notificationIcon}>
-                    {getNotificationIcon(notification.type)}
-                  </Text>
-                </View>
-                <View style={styles.flexOne}>
-                  <View style={styles.notificationHeader}>
-                    <Text style={styles.notificationTitle}>{notification.title}</Text>
-                    <Text style={styles.notificationTime}>{notification.timestamp}</Text>
-                  </View>
-                  <Text style={styles.notificationMessage}>{notification.message}</Text>
-                </View>
-                {!notification.read ? <View style={styles.unreadDot} /> : null}
-              </Pressable>
-            ))
-          ) : (
-            <EmptyState
-              title="No notifications yet"
-              subtitle="Firebase messages and task updates will appear here."
-            />
-          )}
-        </SectionCard> */}
 
         <SectionCard title="Created Task Overview">
           <View style={styles.overviewGrid}>
@@ -498,7 +360,6 @@ export function DashboardScreen(props: DashboardScreenProps) {
             ))}
           </View>
         </SectionCard>
-
         <SectionCard title="Managed Tasks Overview">
           <Text style={styles.chartIntro}>
             See how your assigned work is moving, who owns it, and where

@@ -9,11 +9,15 @@ import { attendanceService } from '../../services/attendance.service';
 import { calculateDistance } from '../../utils/distance';
 import { OFFICE_LOCATION } from '../../constants/ office';
 
+type AttendanceScreenProps = {
+  userId: string;
+};
 
-export default function AttendanceScreen() {
+export default function AttendanceScreen({ userId }: AttendanceScreenProps) {
+
+
+    
   const [checkedIn, setCheckedIn] = useState(false);
-
-  const userId = '123';
 
   async function handleCheckIn() {
     try {
@@ -101,3 +105,4 @@ export default function AttendanceScreen() {
     </View>
   );
 }
+

@@ -2,19 +2,12 @@ const Attendance =
 
   require('../models/Attendance');
 
-exports.checkIn =
+exports.checkIn = async (req, res) => {
 
-  async (req, res) => {
+  const record = await Attendance.create(req.body);
 
-    const record =
-
-      await Attendance.create(
-        req.body
-      );
-
-    res.send(record);
-
-  };
+  res.send(record);
+};
 
 exports.checkOut =
 
@@ -63,3 +56,20 @@ exports.checkOut =
     res.send(record);
 
   };
+
+exports.getTodayAttendance = async (req, res) => {
+  const start = new Date();
+  start.setHours(0, 0, 0, 0);
+
+  const end = new Date();
+  end.setHours(23, 59, 59, 999);
+
+  const records = await Attendance.find({
+    checkInTime: {
+      $gte: start,
+      $lte: end,
+    },
+  });
+
+  res.send(records);
+};

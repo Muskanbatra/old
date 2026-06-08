@@ -16,5 +16,9 @@ router.put(
   '/checkout',
   controller.checkOut
 );
+router.get(
+  '/today',
+  controller.getTodayAttendance
+);
 
 module.exports = router;
