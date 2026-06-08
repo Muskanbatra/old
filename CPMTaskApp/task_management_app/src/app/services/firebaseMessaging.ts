@@ -192,9 +192,13 @@ export async function initializeFirebaseMessaging(
     };
   }
 
-  const token = await messagingModule.getToken(messagingModule.messaging);
-  handlers.onToken(token);
+const token = await messagingModule.getToken(
+  messagingModule.messaging,
+);
 
+console.log("FCM TOKEN:", token);
+
+handlers.onToken(token);
   const unsubscribeOnMessage = messagingModule.onMessage(
     messagingModule.messaging,
     remoteMessage => {

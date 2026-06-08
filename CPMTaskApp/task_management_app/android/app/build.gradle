@@ -104,6 +104,11 @@ android {
             keyPassword 'android'
         }
     }
+    buildscript {
+    dependencies {
+        classpath("com.google.gms:google-services:4.4.4")
+    }
+}
     buildTypes {
         debug {
             signingConfig signingConfigs.debug
@@ -118,8 +123,24 @@ android {
     }
 }
 
+// dependencies {
+    
+//     // The version of react-native is set by the React Native Gradle Plugin
+//     implementation("com.facebook.react:react-android")
+
+//     if (hermesEnabled.toBoolean()) {
+//         implementation("com.facebook.react:hermes-android")
+//     } else {
+//         implementation jscFlavor
+//     }
+// }
+
 dependencies {
-    // The version of react-native is set by the React Native Gradle Plugin
+
+    implementation(platform("com.google.firebase:firebase-bom:34.14.0"))
+
+    implementation("com.google.firebase:firebase-messaging")
+
     implementation("com.facebook.react:react-android")
 
     if (hermesEnabled.toBoolean()) {

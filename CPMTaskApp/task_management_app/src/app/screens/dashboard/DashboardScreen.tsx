@@ -13,6 +13,7 @@ import { COLORS, type Task } from '../../domain/model';
 import { styles } from '../../theme/styles';
 import { DateRangePicker, type DateRange } from './DateRangePicker';
 import type { ScreenRendererProps } from '../types';
+import AttendanceScreen from '../attendance/AttendanceScreen';
 
 type DashboardScreenProps = Pick<
   ScreenRendererProps,
@@ -28,7 +29,7 @@ type DashboardScreenProps = Pick<
   | 'notifications'
   | 'openNotification'
 > & {
-  currentUserName?: string;
+    currentUserName?: string;
 };
 
 const DATE_FILTER_DAYS = 7;
@@ -253,6 +254,7 @@ export function DashboardScreen(props: DashboardScreenProps) {
   return (
     <SafeAreaView style={styles.page}>
       <ScrollView contentContainerStyle={styles.dashboardScroll}>
+        <AttendanceScreen/>
         <View style={styles.heroCard}>
           <GradientSurface style={styles.heroGradient} />
           <View style={styles.heroTopRow}>
