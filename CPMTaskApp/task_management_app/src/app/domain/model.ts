@@ -21,7 +21,12 @@ export type DashboardTab = 'home' | 'tasks' | 'add' | 'profile';
 export type TaskTab = 'active' | 'incoming' | 'review' | 'complete';
 export type ManageTab = 'create' | 'created' | 'done' | 'review';
 export type Priority = 'low' | 'medium' | 'high';
-export type TaskStatus = 'pending' | 'in_progress' | 'completed' | 'under_review' | 'rejected';
+export type TaskStatus =
+  | 'pending'
+  | 'in_progress'
+  | 'completed'
+  | 'under_review'
+  | 'rejected';
 
 export type User = {
   id: string;
@@ -59,7 +64,12 @@ export type Task = {
 
 export type AppNotification = {
   id: string;
-  type: 'task_assigned' | 'task_approved' | 'task_returned' | 'task_completed' | 'task_rejected';
+  type:
+    | 'task_assigned'
+    | 'task_approved'
+    | 'task_returned'
+    | 'task_completed'
+    | 'task_rejected';
   title: string;
   message: string;
   taskId: string;
@@ -215,12 +225,12 @@ export const INITIAL_NOTIFICATIONS: AppNotification[] = [
 export const INITIAL_TIMERS: Record<string, TimerState> = {
   '1': {
     total: 45 * 60,
-    remaining: 36 * 60,
+    remaining: 45 * 60,
     isPaused: false,
     pauseHistory: [],
     totalBreakSeconds: 0,
     extensionHistory: [],
-    lastResumedAt: new Date(Date.now() - 9 * 60 * 1000).toISOString(),
+    lastResumedAt: new Date().toISOString(),
   },
 };
 
@@ -235,12 +245,10 @@ export const WEEKLY_DATA = [
 ];
 
 export const IS_TEST_ENV = !!(
-  (
-    globalThis as typeof globalThis & {
-      process?: { env?: Record<string, string | undefined> };
-    }
-  ).process?.env?.JEST_WORKER_ID
-);
+  globalThis as typeof globalThis & {
+    process?: { env?: Record<string, string | undefined> };
+  }
+).process?.env?.JEST_WORKER_ID;
 
 export const COLORS = {
   bg: '#FFFFFF',
@@ -304,7 +312,9 @@ export function parseDurationMinutes(value?: string) {
   }
 
   const trimmedValue = value.trim().toLowerCase();
-  const durationMatch = trimmedValue.match(/^(\d+)\s*(min|mins|minute|minutes|hr|hrs|hour|hours)$/);
+  const durationMatch = trimmedValue.match(
+    /^(\d+)\s*(min|mins|minute|minutes|hr|hrs|hour|hours)$/,
+  );
 
   if (!durationMatch) {
     return 0;
@@ -318,7 +328,9 @@ export function parseDurationMinutes(value?: string) {
 
   const unit = durationMatch[2];
 
-  return unit.startsWith('hr') || unit.startsWith('hour') ? amount * 60 : amount;
+  return unit.startsWith('hr') || unit.startsWith('hour')
+    ? amount * 60
+    : amount;
 }
 
 export function formatDurationLabel(minutes: number) {
@@ -334,7 +346,9 @@ export function formatDurationLabel(minutes: number) {
   return `${minutes} min`;
 }
 
-export function getTaskDurationMinutes(task: Pick<Task, 'dueTime' | 'durationMinutes'>) {
+export function getTaskDurationMinutes(
+  task: Pick<Task, 'dueTime' | 'durationMinutes'>,
+) {
   if (task.durationMinutes && task.durationMinutes > 0) {
     return task.durationMinutes;
   }
@@ -342,7 +356,9 @@ export function getTaskDurationMinutes(task: Pick<Task, 'dueTime' | 'durationMin
   return parseDurationMinutes(task.dueTime);
 }
 
-export function getTaskDurationLabel(task: Pick<Task, 'dueTime' | 'durationMinutes'>) {
+export function getTaskDurationLabel(
+  task: Pick<Task, 'dueTime' | 'durationMinutes'>,
+) {
   if (task.dueTime && parseDurationMinutes(task.dueTime)) {
     return task.dueTime;
   }
@@ -404,7 +420,28 @@ export function getTaskRemainingSeconds(
     return 0;
   }
 
-  return Math.max(0, Math.floor((dueDateTime.getTime() - now.getTime()) / 1000));
+  return Math.max(
+    0,
+    Math.floor((dueDateTime.getTime() - now.getTime()) / 1000),
+  );
+}
+
+export function getTaskElapsedSeconds(
+  task: Pick<Task, 'dueDate' | 'dueTime' | 'durationMinutes'>,
+  timer?: Pick<TimerState, 'remaining' | 'isPaused' | 'lastResumedAt'>,
+  now = new Date(),
+) {
+  const durationMinutes = getTaskDurationMinutes(task);
+
+  if (durationMinutes <= 0) {
+    return 0;
+  }
+
+  const totalSeconds = durationMinutes * 60;
+
+  const remainingSeconds = getTaskRemainingSeconds(task, timer, now);
+
+  return Math.max(0, totalSeconds - remainingSeconds);
 }
 
 export function formatTaskDueDateTime(task: Pick<Task, 'dueDate' | 'dueTime'>) {

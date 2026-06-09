@@ -24,6 +24,7 @@ import {
   formatTime,
   getTaskDurationLabel,
   getTaskRemainingSeconds,
+  getTaskElapsedSeconds,
 } from '../../domain/model';
 import { formatBreakDuration, getBreakSeconds } from '../../utils/timers';
 
@@ -71,9 +72,14 @@ export function ActiveTaskScreen(props: ActiveTaskScreenProps) {
   const timeRemaining = selectedTask
     ? getTaskRemainingSeconds(selectedTask, timer, new Date(clockTick))
     : 0;
+  const elapsedTime = selectedTask
+    ? getTaskElapsedSeconds(selectedTask, timer, new Date(clockTick))
+    : 0;
   const isPaused = timer?.isPaused ?? selectedTask?.isPaused ?? false;
   const pauseHistory = timer?.pauseHistory ?? selectedTask?.pauseHistory ?? [];
-  const pauseCount = pauseHistory.filter(entry => entry.startsWith('Paused at')).length;
+  const pauseCount = pauseHistory.filter(entry =>
+    entry.startsWith('Paused at'),
+  ).length;
   const totalBreakSeconds = getBreakSeconds(
     timer ?? {
       isPaused,
@@ -82,8 +88,11 @@ export function ActiveTaskScreen(props: ActiveTaskScreenProps) {
     },
     clockTick,
   );
-  const extensionHistory = timer?.extensionHistory ?? selectedTask?.extensionHistory ?? [];
-  const assignedTime = selectedTask ? getTaskDurationLabel(selectedTask) || '--' : '--';
+  const extensionHistory =
+    timer?.extensionHistory ?? selectedTask?.extensionHistory ?? [];
+  const assignedTime = selectedTask
+    ? getTaskDurationLabel(selectedTask) || '--'
+    : '--';
   const selectedTaskId = selectedTask?.id;
   const isTimeComplete =
     selectedTask?.status === 'in_progress' && !isPaused && timeRemaining === 0;
@@ -164,7 +173,10 @@ export function ActiveTaskScreen(props: ActiveTaskScreenProps) {
       return;
     }
 
-    const minutes = moreTimeUnit === 'hr' ? Math.floor(timeValue * 60) : Math.floor(timeValue);
+    const minutes =
+      moreTimeUnit === 'hr'
+        ? Math.floor(timeValue * 60)
+        : Math.floor(timeValue);
     setMoreTimeError('');
     await addMoreTime(minutes, moreTimeReason);
   };
@@ -177,8 +189,8 @@ export function ActiveTaskScreen(props: ActiveTaskScreenProps) {
         <View style={styles.heroTimerCard}>
           <GradientSurface style={styles.heroTimerGradient} />
 
-          <Text style={styles.timerHeroLabel}>Time Remaining</Text>
-          <Text style={styles.timerHeroValue}>{formatTime(timeRemaining)}</Text>
+          <Text style={styles.timerHeroLabel}>Time Elapsed</Text>
+          <Text style={styles.timerHeroValue}>{formatTime(elapsedTime)}</Text>
           <Text style={styles.timerHeroState}>{timerStateLabel}</Text>
         </View>
 
@@ -189,17 +201,28 @@ export function ActiveTaskScreen(props: ActiveTaskScreenProps) {
             variant="secondary"
             narrow
           />
-          <ActionButton title="Done" onPress={finishTask} variant="primary" narrow />
+          <ActionButton
+            title="Done"
+            onPress={finishTask}
+            variant="primary"
+            narrow
+          />
         </View>
 
         <FormCard>
           <Text style={styles.detailsTitle}>{selectedTask.title}</Text>
           <Text style={styles.detailsDesc}>{selectedTask.description}</Text>
 
-          <InfoRow label="Task Date" value={formatTaskDueDateTime(selectedTask)} />
+          <InfoRow
+            label="Task Date"
+            value={formatTaskDueDateTime(selectedTask)}
+          />
           <InfoRow label="Assigned Time" value={assignedTime} />
           <InfoRow label="Pause Count" value={String(pauseCount)} />
-          <InfoRow label="Total Break Taken" value={formatBreakDuration(totalBreakSeconds)} />
+          <InfoRow
+            label="Total Break Taken"
+            value={formatBreakDuration(totalBreakSeconds)}
+          />
           <InfoRow label="Status" value="In Progress" />
         </FormCard>
 
@@ -249,7 +272,9 @@ export function ActiveTaskScreen(props: ActiveTaskScreenProps) {
         <View style={styles.inlineMoreTimeOverlay}>
           <FormCard>
             <Text style={styles.modalTitle}>Add Extra Time</Text>
-            <Text style={styles.modalText}>Enter more time and start timer again.</Text>
+            <Text style={styles.modalText}>
+              Enter more time and start timer again.
+            </Text>
             <View style={styles.rowGap}>
               <View style={styles.flexOne}>
                 <TextInput
@@ -264,7 +289,8 @@ export function ActiveTaskScreen(props: ActiveTaskScreenProps) {
               <View style={styles.flexOne}>
                 <Pressable
                   onPress={() => setShowMoreTimeUnitPicker(prev => !prev)}
-                  style={styles.selectField}>
+                  style={styles.selectField}
+                >
                   <Text style={styles.selectFieldText}>{moreTimeUnit}</Text>
                   <Text style={styles.selectFieldArrow}>⌄</Text>
                 </Pressable>
@@ -282,7 +308,8 @@ export function ActiveTaskScreen(props: ActiveTaskScreenProps) {
                     style={[
                       styles.assignDropdownItem,
                       moreTimeUnit === unit && styles.assignDropdownItemActive,
-                    ]}>
+                    ]}
+                  >
                     {moreTimeUnit === unit ? (
                       <GradientSurface style={styles.assignDropdownGradient} />
                     ) : null}
@@ -290,8 +317,10 @@ export function ActiveTaskScreen(props: ActiveTaskScreenProps) {
                       <Text
                         style={[
                           styles.assignDropdownName,
-                          moreTimeUnit === unit && styles.assignDropdownNameActive,
-                        ]}>
+                          moreTimeUnit === unit &&
+                            styles.assignDropdownNameActive,
+                        ]}
+                      >
                         {unit}
                       </Text>
                     </View>
@@ -338,13 +367,19 @@ export function ActiveTaskScreen(props: ActiveTaskScreenProps) {
         animationType="fade"
         transparent
         visible={showTimeUpModal && isTimeComplete && !showMoreTimeInput}
-        onRequestClose={() => setShowTimeUpModal(false)}>
+        onRequestClose={() => setShowTimeUpModal(false)}
+      >
         <View style={styles.modalOverlayCenter}>
           <View style={styles.pickerModalCard}>
             <Text style={styles.modalTitle}>Time Complete</Text>
             <Text style={styles.modalText}>Is task done?</Text>
             <View style={styles.rowGap}>
-              <ActionButton title="Yes" onPress={finishTask} variant="primary" narrow />
+              <ActionButton
+                title="Yes"
+                onPress={finishTask}
+                variant="primary"
+                narrow
+              />
               <ActionButton
                 title="More Time"
                 onPress={() => {

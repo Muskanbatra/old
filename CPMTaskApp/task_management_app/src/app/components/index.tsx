@@ -14,6 +14,7 @@ import {
   formatTaskDueDateTime,
   DashboardTab,
   getTaskRemainingSeconds,
+  getTaskElapsedSeconds,
   getTaskDurationLabel,
   Task,
   TaskStatus,
@@ -407,6 +408,7 @@ export function TaskCard({
   ).length;
   const completionSummary = getCompletionSummary(task);
   const timeRemaining = getTaskRemainingSeconds(task, timer);
+  const elapsedTime = getTaskElapsedSeconds(task, timer);
   const isPaused = timer?.isPaused ?? task.isPaused ?? false;
   const totalBreakSeconds = getBreakSeconds(
     timer ?? {
@@ -477,10 +479,10 @@ export function TaskCard({
             <Text style={styles.inlineTimerIconText}>◴</Text>
           </View>
           <View style={styles.flexOne}>
-            <Text style={styles.inlineTimerLabel}>Time Remaining</Text>
-            <Text style={styles.inlineTimerValue}>
-              {formatTime(timeRemaining)}
-            </Text>
+          <Text style={styles.inlineTimerLabel}>Time Elapsed</Text>
+<Text style={styles.inlineTimerValue}>
+  {formatTime(elapsedTime)}
+</Text>
           </View>
           <Text style={styles.inlineTimerState}>
             {isPaused ? 'Paused' : 'Running'}
