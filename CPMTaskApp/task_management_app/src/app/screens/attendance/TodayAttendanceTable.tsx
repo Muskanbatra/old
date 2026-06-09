@@ -9,45 +9,64 @@ type Props = {
   getUserName: (userId: string) => string;
 };
 
-export default function TodayAttendanceTable({
-  getUserName,
-}: Props) {
+export default function TodayAttendanceTable({ getUserName }: Props) {
   const [attendanceRows, setAttendanceRows] = useState<any[]>([]);
 
-  useEffect(() => {
+ useEffect(() => {
+  loadAttendance();
+
+  const interval = setInterval(() => {
     loadAttendance();
-  }, []);
+  }, 5000); // every 5 sec
+
+  return () => clearInterval(interval);
+}, []);
 
   const loadAttendance = async () => {
     try {
-      const response =
-        await attendanceService.getTodayAttendance();
+      const response = await attendanceService.getTodayAttendance();
 
-      const rows = response.data.map((item: any) => ({
-        userId: item.userId,
+      const grouped: any = {};
 
-        userName: getUserName(item.userId),
+      response.data.forEach((item: any) => {
+        const userId = item.userId;
 
-        checkIn: item.checkInTime
-          ? new Date(item.checkInTime).toLocaleTimeString([], {
-              hour: '2-digit',
-              minute: '2-digit',
-            })
-          : '--',
+        if (!grouped[userId]) {
+          grouped[userId] = {
+            id: userId,
 
-        checkOut: item.checkOutTime
-          ? new Date(item.checkOutTime).toLocaleTimeString([], {
-              hour: '2-digit',
-              minute: '2-digit',
-            })
-          : '--',
+            userName: getUserName(userId),
 
-        totalHours: item.totalHours
-          ? Number(item.totalHours).toFixed(2)
-          : '0.00',
-      }));
+            checkIns: [],
 
-      setAttendanceRows(rows);
+            checkOuts: [],
+
+            totalHours: 0,
+          };
+        }
+
+        grouped[userId].checkIns.push(
+          item.checkInTime
+            ? new Date(item.checkInTime).toLocaleTimeString([], {
+                hour: '2-digit',
+                minute: '2-digit',
+              })
+            : '--',
+        );
+
+        grouped[userId].checkOuts.push(
+          item.checkOutTime
+            ? new Date(item.checkOutTime).toLocaleTimeString([], {
+                hour: '2-digit',
+                minute: '2-digit',
+              })
+            : '--',
+        );
+
+        grouped[userId].totalHours += item.totalHours || 0;
+      });
+
+      setAttendanceRows(Object.values(grouped));
     } catch (error) {
       console.log(error);
     }
@@ -57,49 +76,37 @@ export default function TodayAttendanceTable({
     <SectionCard title="Today's Attendance">
       <View style={styles.managedTable}>
         <View style={styles.managedTableHeader}>
-          <Text
-            style={[
-              styles.managedHeaderCell,
-              styles.managedUserCell,
-            ]}
-          >
+          <Text style={[styles.managedHeaderCell, styles.managedUserCell]}>
             User
           </Text>
 
-          <Text style={styles.managedHeaderCell}>
-            In
-          </Text>
+          <Text style={styles.managedHeaderCell}>In</Text>
 
-          <Text style={styles.managedHeaderCell}>
-            Out
-          </Text>
+          <Text style={styles.managedHeaderCell}>Out</Text>
 
-          <Text style={styles.managedHeaderCell}>
-            Hours
-          </Text>
+          <Text style={styles.managedHeaderCell}>Hours</Text>
         </View>
 
-        {attendanceRows.map(row => (
-          <View
-            key={row.userId}
-            style={styles.managedTableRow}
-          >
+        {attendanceRows.map((row: any) => (
+          <View key={row.id} style={styles.managedTableRow}>
             <View style={styles.managedUserCell}>
-              <Text style={styles.managedUserName}>
-                {row.userName}
-              </Text>
+              <Text style={styles.managedUserName}>{row.userName}</Text>
+            </View>
+
+            <View style={styles.managedHeaderCell}>
+              {row.checkIns.map((time: string, index: number) => (
+                <Text key={index}>{time}</Text>
+              ))}
+            </View>
+
+            <View style={styles.managedHeaderCell}>
+              {row.checkOuts.map((time: string, index: number) => (
+                <Text key={index}>{time}</Text>
+              ))}
             </View>
 
             <Text style={styles.managedHeaderCell}>
-              {row.checkIn}
-            </Text>
-
-            <Text style={styles.managedHeaderCell}>
-              {row.checkOut}
-            </Text>
-
-            <Text style={styles.managedHeaderCell}>
-              {row.totalHours}
+              {row.totalHours.toFixed(2)}
             </Text>
           </View>
         ))}
