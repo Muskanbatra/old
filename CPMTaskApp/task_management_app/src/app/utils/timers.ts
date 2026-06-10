@@ -67,8 +67,9 @@ export function createTimerState(
   durationMinutes: number,
   overrides?: Partial<TimerState>,
 ): TimerState {
-  const totalSeconds = Math.max(60, durationMinutes * 60);
-
+const totalSeconds = durationMinutes > 0
+  ? durationMinutes * 60
+  : 0;
   return {
     total: totalSeconds,
     remaining: totalSeconds,
@@ -114,6 +115,9 @@ export function getActualTimeSpentSeconds(
   );
 }
 
-export function getTaskDurationOrDefault(task: Partial<Task>, fallbackMinutes = 60) {
-  return getTaskDurationMinutes(task) || fallbackMinutes;
+export function getTaskDurationOrDefault(
+  task: Partial<Task>,
+  fallbackMinutes = 0,
+) {
+  return getTaskDurationMinutes(task) ?? fallbackMinutes;
 }

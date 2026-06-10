@@ -277,9 +277,9 @@ export function ManageTaskScreen(props: ManageTaskScreenProps) {
       nextErrors.dueDate = 'Due date is required.';
     }
 
-    if (!taskForm.dueTime.trim()) {
-      nextErrors.dueTime = 'Task time is required.';
-    }
+    // if (!taskForm.dueTime.trim()) {
+    //   nextErrors.dueTime = 'Task time is required.';
+    // }
 
     if (!taskForm.assignedTo.trim()) {
       nextErrors.assignedTo = 'Please select a team member.';

@@ -466,7 +466,7 @@ export function TaskCard({
         {task.status === 'under_review' || task.status === 'completed' ? (
           <MetaPill
             icon="◴"
-            text={`Time: ${getTaskDurationLabel(task) || '--:--'}`}
+            text={`Assigned Time: ${getTaskDurationLabel(task) || '--:--'}`}
           />
         ) : (
           <MetaPill icon="◌" text={`By: ${getUserName(task.assignedBy)}`} />
@@ -529,7 +529,7 @@ export function TaskCard({
               setShowPauseHistory(true);
             }}
           >
-            <MetaPill icon="◷" text={`Pauses taken: ${pauseCount} • View`} />
+            <MetaPill icon="◷" text={`Pauses History • View`} />
             <Modal
               animationType="fade"
               transparent

@@ -47,6 +47,7 @@ import {
   getTimestampLabel,
 } from '../utils/timers';
 import { getUserIdentityKey } from '../utils/users';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export function useTaskManagementApp() {
   const initialAssigneeId = USERS[1]?.id ?? USERS[0]?.id ?? '';
@@ -110,6 +111,45 @@ export function useTaskManagementApp() {
   });
 
   useEffect(() => {
+  const restoreSession = async () => {
+    try {
+      const token = await AsyncStorage.getItem('authToken');
+
+      if (!token) {
+        return;
+      }
+
+      setAuthToken(token);
+
+      const response = await apiRequest('/auth/valid_user', {
+        method: 'GET',
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      const backendUser = response?.data;
+
+      if (!backendUser?._id) {
+        return;
+      }
+
+      const normalizedUser = normalizeBackendUser(
+        backendUser,
+        users,
+      );
+
+      setCurrentUser(normalizedUser);
+      setLoginEmail(backendUser.email);
+      setScreen('dashboard');
+    } catch (error) {
+      await AsyncStorage.removeItem('authToken');
+    }
+  };
+
+  restoreSession();
+}, []);
+  useEffect(() => {
     setTimers(previousTimers => {
       let didCreateTimer = false;
       const nextTimers = { ...previousTimers };
@@ -119,17 +159,14 @@ export function useTaskManagementApp() {
           return;
         }
 
-        nextTimers[task.id] = createTimerState(
-          getTaskDurationMinutes(task) || 60,
-          {
-            isPaused: task.isPaused ?? true,
-            pauseHistory: task.pauseHistory ?? [],
-            totalBreakSeconds: task.totalBreakSeconds ?? 0,
-            pauseStartedAt: task.pauseStartedAt,
-            extensionHistory: task.extensionHistory ?? [],
-            lastResumedAt: task.isPaused ? undefined : getIsoNow(),
-          },
-        );
+        nextTimers[task.id] = createTimerState(getTaskDurationMinutes(task), {
+          isPaused: task.isPaused ?? true,
+          pauseHistory: task.pauseHistory ?? [],
+          totalBreakSeconds: task.totalBreakSeconds ?? 0,
+          pauseStartedAt: task.pauseStartedAt,
+          extensionHistory: task.extensionHistory ?? [],
+          lastResumedAt: task.isPaused ? undefined : getIsoNow(),
+        });
         didCreateTimer = true;
       });
 
@@ -390,33 +427,32 @@ export function useTaskManagementApp() {
     }
   };
 
-  const refreshRelatedTasks = useEffectEvent(async (options?: {
-    force?: boolean;
-    silent?: boolean;
-  }) => {
-    if (!authToken || taskRefreshInFlightRef.current) {
-      return;
-    }
+  const refreshRelatedTasks = useEffectEvent(
+    async (options?: { force?: boolean; silent?: boolean }) => {
+      if (!authToken || taskRefreshInFlightRef.current) {
+        return;
+      }
 
-    const now = Date.now();
+      const now = Date.now();
 
-    if (!options?.force && now - lastTaskRefreshAtRef.current < 1500) {
-      return;
-    }
+      if (!options?.force && now - lastTaskRefreshAtRef.current < 1500) {
+        return;
+      }
 
-    taskRefreshInFlightRef.current = true;
+      taskRefreshInFlightRef.current = true;
 
-    try {
-      await fetchRelatedTasks(authToken, {
-        silent: options?.silent ?? true,
-      });
-      lastTaskRefreshAtRef.current = Date.now();
-    } catch (error) {
-      setTaskActionError(getErrorMessage(error));
-    } finally {
-      taskRefreshInFlightRef.current = false;
-    }
-  });
+      try {
+        await fetchRelatedTasks(authToken, {
+          silent: options?.silent ?? true,
+        });
+        lastTaskRefreshAtRef.current = Date.now();
+      } catch (error) {
+        setTaskActionError(getErrorMessage(error));
+      } finally {
+        taskRefreshInFlightRef.current = false;
+      }
+    },
+  );
 
   const resetForgotPasswordState = (options?: { keepEmail?: boolean }) => {
     if (!options?.keepEmail) {
@@ -891,7 +927,8 @@ export function useTaskManagementApp() {
         throw new Error('Login succeeded but user details were incomplete.');
       }
 
-      setAuthToken(token);
+      await AsyncStorage.setItem('authToken', token);
+setAuthToken(token);
 
       const nextUsers = syncUsersFromBackend([backendUser], {
         focusUser: backendUser,
@@ -1050,20 +1087,22 @@ export function useTaskManagementApp() {
     }
   };
 
-  const handleLogout = () => {
-    setAuthToken(null);
-    setCurrentUser(null);
-    setSelectedUserId(null);
-    setLoginError('');
-    resetForgotPasswordState();
-    setUserActionError('');
-    setTaskActionError('');
-    setDashboardTab('home');
-    setTaskTab('active');
-    setManageTab('create');
-    setScreenHistory([]);
-    setScreen('login');
-  };
+  const handleLogout = async () => {
+  await AsyncStorage.removeItem('authToken');
+
+  setAuthToken(null);
+  setCurrentUser(null);
+  setSelectedUserId(null);
+  setLoginError('');
+  resetForgotPasswordState();
+  setUserActionError('');
+  setTaskActionError('');
+  setDashboardTab('home');
+  setTaskTab('active');
+  setManageTab('create');
+  setScreenHistory([]);
+  setScreen('login');
+};
 
   const showTimedSuccess = (message: string, nextScreen?: Screen) => {
     setSuccessMessage(message);
@@ -1233,12 +1272,10 @@ export function useTaskManagementApp() {
     if (
       !taskForm.title.trim() ||
       !taskForm.dueDate.trim() ||
-      !taskForm.dueTime.trim() ||
+      // !taskForm.dueTime.trim() ||
       !taskForm.assignedTo.trim()
     ) {
-      setTaskActionError(
-        'Fill in the task title, due date, task time, and assignee.',
-      );
+      setTaskActionError('Fill in the task title, due date and assignee.');
       return;
     }
 
@@ -1255,7 +1292,7 @@ export function useTaskManagementApp() {
         title: taskForm.title.trim(),
         description: taskForm.description.trim() || '',
         dueDate: taskForm.dueDate.trim(),
-        dueTime: taskForm.dueTime.trim(),
+        dueTime: taskForm.dueTime?.trim() || '',
         assignedTo: getBackendUserId(taskForm.assignedTo),
       };
       let createdTaskId = selectedTask?.id ?? '';
@@ -1305,9 +1342,7 @@ export function useTaskManagementApp() {
       if (mode === 'edit' && selectedTask) {
         setTimers(prev => ({
           ...prev,
-          [selectedTask.id]: createTimerState(
-            getTaskDurationMinutes(payload) || 60,
-          ),
+          [selectedTask.id]: createTimerState(getTaskDurationMinutes(payload)),
         }));
       }
 
@@ -1358,7 +1393,7 @@ export function useTaskManagementApp() {
 
     setTimers(prev => ({
       ...prev,
-      [taskId]: createTimerState(getTaskDurationMinutes(task) || 60),
+      [taskId]: createTimerState(getTaskDurationMinutes(task)),
     }));
 
     const didAssign = await persistTaskMutation(
@@ -1501,7 +1536,7 @@ export function useTaskManagementApp() {
           const previousTask = tasks.find(task => task.id === id);
           const timer =
             prev[id] ??
-            createTimerState(getTaskDurationMinutes(previousTask ?? {}) || 60, {
+            createTimerState(getTaskDurationMinutes(previousTask ?? {}), {
               isPaused: false,
             });
           const remaining = getTimerRemainingSeconds(timer);
@@ -1526,8 +1561,9 @@ export function useTaskManagementApp() {
       ),
       [taskId]: {
         ...(prev[taskId] ??
-          createTimerState(durationMinutes || 60, {
-            remaining: Math.max(60, (durationMinutes || 60) * 60),
+          createTimerState(durationMinutes, {
+            remaining: durationMinutes > 0 ? durationMinutes * 60 : 0,
+            startedAt: getIsoNow(),
           })),
         isPaused: false,
         lastResumedAt: getIsoNow(),
@@ -1595,7 +1631,7 @@ export function useTaskManagementApp() {
     const completionIso = new Date(completionTime).toISOString();
     const currentTimer =
       timers[taskId] ??
-      createTimerState(getTaskDurationMinutes(task ?? {}) || 60, {
+      createTimerState(getTaskDurationMinutes(task ?? {}), {
         isPaused: task?.isPaused ?? false,
         pauseHistory: task?.pauseHistory ?? [],
         totalBreakSeconds: task?.totalBreakSeconds ?? 0,
@@ -1607,13 +1643,28 @@ export function useTaskManagementApp() {
     const dueSeconds = currentTimer.total;
     const remainingSeconds = getTimerRemainingSeconds(currentTimer);
 
-    let actualTimeSpentSeconds = 0;
+    const durationMinutes = getTaskDurationMinutes(task ?? {});
 
-    if (dueSeconds > remainingSeconds) {
-      actualTimeSpentSeconds = dueSeconds - remainingSeconds;
-    } else {
-      actualTimeSpentSeconds = dueSeconds;
-    }
+let actualTimeSpentSeconds = 0;
+
+if (durationMinutes <= 0) {
+  const startedAt = currentTimer.startedAt;
+
+  if (startedAt) {
+    actualTimeSpentSeconds = Math.max(
+      0,
+      Math.floor(
+        (completionTime - new Date(startedAt).getTime()) / 1000,
+      ),
+    );
+  }
+} else {
+  if (dueSeconds > remainingSeconds) {
+    actualTimeSpentSeconds = dueSeconds - remainingSeconds;
+  } else {
+    actualTimeSpentSeconds = dueSeconds;
+  }
+}
 
     console.log('Due:', dueSeconds);
     console.log('Remaining:', remainingSeconds);
@@ -1621,7 +1672,7 @@ export function useTaskManagementApp() {
     setTimers(prev => {
       const activeTimer =
         prev[taskId] ??
-        createTimerState(getTaskDurationMinutes(task ?? {}) || 60, {
+        createTimerState(getTaskDurationMinutes(task ?? {}), {
           isPaused: false,
         });
       const remaining = getTimerRemainingSeconds(activeTimer);
@@ -1729,7 +1780,7 @@ export function useTaskManagementApp() {
     const submittedAt = Date.now();
     const currentTimer =
       timers[taskId] ??
-      createTimerState(getTaskDurationMinutes(task ?? {}) || 60, {
+      createTimerState(getTaskDurationMinutes(task ?? {}), {
         isPaused: task?.isPaused ?? true,
         pauseHistory: task?.pauseHistory ?? [],
         totalBreakSeconds: task?.totalBreakSeconds ?? 0,
@@ -1784,7 +1835,7 @@ export function useTaskManagementApp() {
     setReviewComment('');
     const currentTimer =
       timers[taskId] ??
-      createTimerState(getTaskDurationMinutes(task ?? {}) || 60, {
+      createTimerState(getTaskDurationMinutes(task ?? {}), {
         isPaused: task?.isPaused ?? true,
         pauseHistory: task?.pauseHistory ?? [],
         totalBreakSeconds: task?.totalBreakSeconds ?? 0,
@@ -1829,7 +1880,7 @@ export function useTaskManagementApp() {
       ...prev,
       [taskId]: {
         ...(prev[taskId] ??
-          createTimerState(getTaskDurationMinutes(task ?? {}) || 60, {
+          createTimerState(getTaskDurationMinutes(task ?? {}), {
             isPaused: false,
           })),
         isPaused: false,
@@ -1869,7 +1920,7 @@ export function useTaskManagementApp() {
 
     const currentTimer =
       timers[taskId] ??
-      createTimerState(getTaskDurationMinutes(currentTask ?? {}) || 60, {
+      createTimerState(getTaskDurationMinutes(currentTask ?? {}), {
         isPaused: currentTask?.isPaused ?? false,
         pauseHistory: currentTask?.pauseHistory ?? [],
         totalBreakSeconds: currentTask?.totalBreakSeconds ?? 0,
@@ -1909,7 +1960,7 @@ export function useTaskManagementApp() {
         runningTasks.forEach(task => {
           const timer =
             prev[task.id] ??
-            createTimerState(getTaskDurationMinutes(task) || 60, {
+            createTimerState(getTaskDurationMinutes(task), {
               isPaused: task.isPaused ?? false,
               pauseHistory: task.pauseHistory ?? [],
               totalBreakSeconds: task.totalBreakSeconds ?? 0,
@@ -2108,7 +2159,7 @@ export function useTaskManagementApp() {
     const currentTask = tasks.find(task => task.id === taskId);
     const currentTimer =
       timers[taskId] ??
-      createTimerState(getTaskDurationMinutes(currentTask ?? {}) || 60, {
+      createTimerState(getTaskDurationMinutes(currentTask ?? {}), {
         isPaused: true,
         pauseHistory: currentTask?.pauseHistory ?? [],
         totalBreakSeconds: currentTask?.totalBreakSeconds ?? 0,

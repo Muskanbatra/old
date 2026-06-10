@@ -89,6 +89,7 @@ export type TimerState = {
   pauseStartedAt?: string;
   extensionHistory: string[];
   lastResumedAt?: string;
+  startedAt?: string;
 };
 
 export const USERS: User[] = [];
@@ -404,10 +405,15 @@ export function getTaskRemainingSeconds(
   timer?: Pick<TimerState, 'remaining' | 'isPaused' | 'lastResumedAt'>,
   now = new Date(),
 ) {
-  if (timer) {
-    return getTimerRemainingSeconds(timer, now.getTime());
+if (timer) {
+  const durationMinutes = getTaskDurationMinutes(task);
+
+  if (durationMinutes <= 0) {
+    return Number.MAX_SAFE_INTEGER;
   }
 
+  return getTimerRemainingSeconds(timer, now.getTime());
+}
   const durationMinutes = getTaskDurationMinutes(task);
 
   if (durationMinutes > 0) {
@@ -428,18 +434,39 @@ export function getTaskRemainingSeconds(
 
 export function getTaskElapsedSeconds(
   task: Pick<Task, 'dueDate' | 'dueTime' | 'durationMinutes'>,
-  timer?: Pick<TimerState, 'remaining' | 'isPaused' | 'lastResumedAt'>,
+  timer?: Pick<
+    TimerState,
+    'remaining' | 'isPaused' | 'lastResumedAt' | 'startedAt'
+  >,
   now = new Date(),
 ) {
   const durationMinutes = getTaskDurationMinutes(task);
 
+  // No assigned time -> count up from start
   if (durationMinutes <= 0) {
-    return 0;
+    if (!timer?.startedAt) {
+      return 0;
+    }
+
+    const startedAt = new Date(timer.startedAt).getTime();
+
+    if (Number.isNaN(startedAt)) {
+      return 0;
+    }
+
+    return Math.max(
+      0,
+      Math.floor((now.getTime() - startedAt) / 1000),
+    );
   }
 
   const totalSeconds = durationMinutes * 60;
 
-  const remainingSeconds = getTaskRemainingSeconds(task, timer, now);
+  const remainingSeconds = getTaskRemainingSeconds(
+    task,
+    timer,
+    now,
+  );
 
   return Math.max(0, totalSeconds - remainingSeconds);
 }
