@@ -20,5 +20,9 @@ router.get(
   '/today',
   controller.getTodayAttendance
 );
+router.get(
+  '/status/:userId',
+  controller.getAttendanceStatus
+);
 
 module.exports = router;

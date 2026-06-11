@@ -73,3 +73,11 @@ exports.getTodayAttendance = async (req, res) => {
 
   res.send(records);
 };
+
+exports.getAttendanceStatus = async (req, res) => {
+  const record = await Attendance.findOne({
+    userId: req.params.userId,
+  }).sort({ checkInTime: -1 });
+
+  res.send(record);
+};

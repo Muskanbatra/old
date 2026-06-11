@@ -23,4 +23,10 @@ export const attendanceService = {
       `${BASE_URL}/attendance/today`,
     );
   },
+
+  getAttendanceStatus: (userId:any) => {
+  return axios.get(
+    `${BASE_URL}/attendance/status/${userId}`
+  );
+},
 };

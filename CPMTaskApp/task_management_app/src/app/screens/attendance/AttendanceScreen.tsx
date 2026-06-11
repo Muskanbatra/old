@@ -1,5 +1,4 @@
-import React, { useState } from 'react';
-
+import React, { useEffect, useState } from 'react';
 import { View, Button, Alert } from 'react-native';
 
 import { getCurrentLocation } from '../../utils/location';
@@ -14,10 +13,27 @@ type AttendanceScreenProps = {
 };
 
 export default function AttendanceScreen({ userId }: AttendanceScreenProps) {
-
-
-    
   const [checkedIn, setCheckedIn] = useState(false);
+  const loadAttendanceStatus = async () => {
+    try {
+      const response = await attendanceService.getAttendanceStatus(userId);
+
+      const record = response.data;
+
+      if (record && record.status === 'CHECKED_IN') {
+        setCheckedIn(true);
+      } else {
+        setCheckedIn(false);
+      }
+    } catch (error) {
+      console.log(error);
+    }
+  };
+  useEffect(() => {
+    if (userId) {
+      loadAttendanceStatus();
+    }
+  }, [userId]);
 
   async function handleCheckIn() {
     try {
@@ -49,7 +65,7 @@ export default function AttendanceScreen({ userId }: AttendanceScreenProps) {
         status: 'CHECKED_IN',
       });
 
-      setCheckedIn(true);
+      await loadAttendanceStatus();
 
       Alert.alert(
         'Success',
@@ -79,7 +95,7 @@ export default function AttendanceScreen({ userId }: AttendanceScreenProps) {
         status: 'CHECKED_OUT',
       });
 
-      setCheckedIn(false);
+      await loadAttendanceStatus();
 
       Alert.alert(
         'Success',
@@ -105,4 +121,3 @@ export default function AttendanceScreen({ userId }: AttendanceScreenProps) {
     </View>
   );
 }
-
