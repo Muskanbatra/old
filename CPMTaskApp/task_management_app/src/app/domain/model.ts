@@ -223,17 +223,7 @@ export const INITIAL_NOTIFICATIONS: AppNotification[] = [
   },
 ];
 
-export const INITIAL_TIMERS: Record<string, TimerState> = {
-  '1': {
-    total: 45 * 60,
-    remaining: 45 * 60,
-    isPaused: false,
-    pauseHistory: [],
-    totalBreakSeconds: 0,
-    extensionHistory: [],
-    lastResumedAt: new Date().toISOString(),
-  },
-};
+export const INITIAL_TIMERS = {};
 
 export const WEEKLY_DATA = [
   { day: 'Mon', completed: 4, assigned: 6 },

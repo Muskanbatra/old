@@ -111,44 +111,55 @@ export function useTaskManagementApp() {
   });
 
   useEffect(() => {
-  const restoreSession = async () => {
-    try {
-      const token = await AsyncStorage.getItem('authToken');
+    const loadTimers = async () => {
+      const savedTimers = await AsyncStorage.getItem('task_timers');
 
-      if (!token) {
-        return;
+      if (savedTimers) {
+        setTimers(JSON.parse(savedTimers));
       }
+    };
 
-      setAuthToken(token);
+    loadTimers();
+  }, []);
+  useEffect(() => {
+    AsyncStorage.setItem('task_timers', JSON.stringify(timers));
+  }, [timers]);
+  useEffect(() => {
+    const restoreSession = async () => {
+      try {
+        const token = await AsyncStorage.getItem('authToken');
 
-      const response = await apiRequest('/auth/valid_user', {
-        method: 'GET',
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
+        if (!token) {
+          return;
+        }
 
-      const backendUser = response?.data;
+        setAuthToken(token);
 
-      if (!backendUser?._id) {
-        return;
+        const response = await apiRequest('/auth/valid_user', {
+          method: 'GET',
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+
+        const backendUser = response?.data;
+
+        if (!backendUser?._id) {
+          return;
+        }
+
+        const normalizedUser = normalizeBackendUser(backendUser, users);
+
+        setCurrentUser(normalizedUser);
+        setLoginEmail(backendUser.email);
+        setScreen('dashboard');
+      } catch (error) {
+        await AsyncStorage.removeItem('authToken');
       }
+    };
 
-      const normalizedUser = normalizeBackendUser(
-        backendUser,
-        users,
-      );
-
-      setCurrentUser(normalizedUser);
-      setLoginEmail(backendUser.email);
-      setScreen('dashboard');
-    } catch (error) {
-      await AsyncStorage.removeItem('authToken');
-    }
-  };
-
-  restoreSession();
-}, []);
+    restoreSession();
+  }, []);
   useEffect(() => {
     setTimers(previousTimers => {
       let didCreateTimer = false;
@@ -928,7 +939,7 @@ export function useTaskManagementApp() {
       }
 
       await AsyncStorage.setItem('authToken', token);
-setAuthToken(token);
+      setAuthToken(token);
 
       const nextUsers = syncUsersFromBackend([backendUser], {
         focusUser: backendUser,
@@ -1088,21 +1099,21 @@ setAuthToken(token);
   };
 
   const handleLogout = async () => {
-  await AsyncStorage.removeItem('authToken');
+    await AsyncStorage.removeItem('authToken');
 
-  setAuthToken(null);
-  setCurrentUser(null);
-  setSelectedUserId(null);
-  setLoginError('');
-  resetForgotPasswordState();
-  setUserActionError('');
-  setTaskActionError('');
-  setDashboardTab('home');
-  setTaskTab('active');
-  setManageTab('create');
-  setScreenHistory([]);
-  setScreen('login');
-};
+    setAuthToken(null);
+    setCurrentUser(null);
+    setSelectedUserId(null);
+    setLoginError('');
+    resetForgotPasswordState();
+    setUserActionError('');
+    setTaskActionError('');
+    setDashboardTab('home');
+    setTaskTab('active');
+    setManageTab('create');
+    setScreenHistory([]);
+    setScreen('login');
+  };
 
   const showTimedSuccess = (message: string, nextScreen?: Screen) => {
     setSuccessMessage(message);
@@ -1563,9 +1574,9 @@ setAuthToken(token);
         ...(prev[taskId] ??
           createTimerState(durationMinutes, {
             remaining: durationMinutes > 0 ? durationMinutes * 60 : 0,
-            startedAt: getIsoNow(),
           })),
         isPaused: false,
+        startedAt: prev[taskId]?.startedAt ?? getIsoNow(),
         lastResumedAt: getIsoNow(),
       },
     }));
@@ -1645,26 +1656,24 @@ setAuthToken(token);
 
     const durationMinutes = getTaskDurationMinutes(task ?? {});
 
-let actualTimeSpentSeconds = 0;
+    let actualTimeSpentSeconds = 0;
 
-if (durationMinutes <= 0) {
-  const startedAt = currentTimer.startedAt;
+    if (durationMinutes <= 0) {
+      const startedAt = currentTimer.startedAt;
 
-  if (startedAt) {
-    actualTimeSpentSeconds = Math.max(
-      0,
-      Math.floor(
-        (completionTime - new Date(startedAt).getTime()) / 1000,
-      ),
-    );
-  }
-} else {
-  if (dueSeconds > remainingSeconds) {
-    actualTimeSpentSeconds = dueSeconds - remainingSeconds;
-  } else {
-    actualTimeSpentSeconds = dueSeconds;
-  }
-}
+      if (startedAt) {
+        actualTimeSpentSeconds = Math.max(
+          0,
+          Math.floor((completionTime - new Date(startedAt).getTime()) / 1000),
+        );
+      }
+    } else {
+      if (dueSeconds > remainingSeconds) {
+        actualTimeSpentSeconds = dueSeconds - remainingSeconds;
+      } else {
+        actualTimeSpentSeconds = dueSeconds;
+      }
+    }
 
     console.log('Due:', dueSeconds);
     console.log('Remaining:', remainingSeconds);
