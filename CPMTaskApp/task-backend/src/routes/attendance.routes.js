@@ -24,5 +24,9 @@ router.get(
   '/status/:userId',
   controller.getAttendanceStatus
 );
+router.get(
+  "/today-report",
+  controller.getTodayReport
+);
 
 module.exports = router;

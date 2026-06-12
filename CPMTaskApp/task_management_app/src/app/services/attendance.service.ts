@@ -6,7 +6,6 @@ export const attendanceService = {
   checkIn: (data: any) => {
     return axios.post(
       `${BASE_URL}/attendance/checkin`,
-
       data,
     );
   },
@@ -14,19 +13,25 @@ export const attendanceService = {
   checkOut: (data: any) => {
     return axios.put(
       `${BASE_URL}/attendance/checkout`,
-
       data,
     );
   },
-   getTodayAttendance: () => {
+
+  getTodayAttendance: () => {
     return axios.get(
       `${BASE_URL}/attendance/today`,
     );
   },
 
-  getAttendanceStatus: (userId:any) => {
-  return axios.get(
-    `${BASE_URL}/attendance/status/${userId}`
-  );
-},
+  getAttendanceStatus: (userId: any) => {
+    return axios.get(
+      `${BASE_URL}/attendance/status/${userId}`
+    );
+  },
+
+  getTodayReport: () => {
+    return axios.get(
+      `${BASE_URL}/attendance/today-report`
+    );
+  },
 };
