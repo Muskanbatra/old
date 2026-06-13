@@ -12,12 +12,14 @@ export default function TodayAttendanceTable({ getUserName }: Props) {
   const [attendanceRows, setAttendanceRows] = useState<any[]>([]);
   const [selectedTasks, setSelectedTasks] = useState<any[]>([]);
   const [showTaskModal, setShowTaskModal] = useState(false);
+  const [modalTitle, setModalTitle] = useState('');
+
   useEffect(() => {
     loadAttendance();
 
     const interval = setInterval(() => {
       loadAttendance();
-    }, 5000); // every 5 sec
+    }, 5000);
 
     return () => clearInterval(interval);
   }, []);
@@ -25,8 +27,7 @@ export default function TodayAttendanceTable({ getUserName }: Props) {
   const loadAttendance = async () => {
     try {
       const response = await attendanceService.getTodayReport();
-
-      setAttendanceRows(response.data.data);
+      setAttendanceRows(response.data.data || []);
     } catch (error) {
       console.log(error);
     }
@@ -39,11 +40,18 @@ export default function TodayAttendanceTable({ getUserName }: Props) {
           <Text style={[styles.managedHeaderCell, styles.managedUserCell]}>
             User
           </Text>
+
           <Text style={styles.managedHeaderCell}>In</Text>
+
           <Text style={styles.managedHeaderCell}>Out</Text>
+
           <Text style={styles.managedHeaderCell}>Hours</Text>
+
           <Text style={styles.managedHeaderCell}>Completed</Text>
+
           <Text style={styles.managedHeaderCell}>Active Task</Text>
+
+          <Text style={styles.managedHeaderCell}>Pending</Text>
         </View>
 
         {attendanceRows.map((row: any) => (
@@ -55,29 +63,33 @@ export default function TodayAttendanceTable({ getUserName }: Props) {
             </View>
 
             <View style={styles.managedHeaderCell}>
-              {row.attendance?.map((item: any, index: number) => (
-                <Text key={index}>
-                  {item.checkInTime
-                    ? new Date(item.checkInTime).toLocaleTimeString([], {
-                        hour: '2-digit',
-                        minute: '2-digit',
-                      })
-                    : '--'}
-                </Text>
-              ))}
+              {(row.attendance || []).map(
+                (item: any, index: number) => (
+                  <Text key={index}>
+                    {item.checkInTime
+                      ? new Date(item.checkInTime).toLocaleTimeString([], {
+                          hour: '2-digit',
+                          minute: '2-digit',
+                        })
+                      : '--'}
+                  </Text>
+                ),
+              )}
             </View>
 
             <View style={styles.managedHeaderCell}>
-              {row.attendance?.map((item: any, index: number) => (
-                <Text key={index}>
-                  {item.checkOutTime
-                    ? new Date(item.checkOutTime).toLocaleTimeString([], {
-                        hour: '2-digit',
-                        minute: '2-digit',
-                      })
-                    : '--'}
-                </Text>
-              ))}
+              {(row.attendance || []).map(
+                (item: any, index: number) => (
+                  <Text key={index}>
+                    {item.checkOutTime
+                      ? new Date(item.checkOutTime).toLocaleTimeString([], {
+                          hour: '2-digit',
+                          minute: '2-digit',
+                        })
+                      : '--'}
+                  </Text>
+                ),
+              )}
             </View>
 
             <Text style={styles.managedHeaderCell}>
@@ -87,6 +99,7 @@ export default function TodayAttendanceTable({ getUserName }: Props) {
             <Pressable
               style={styles.managedHeaderCell}
               onPress={() => {
+                setModalTitle('Completed Tasks');
                 setSelectedTasks(row.completedTasks || []);
                 setShowTaskModal(true);
               }}
@@ -94,35 +107,34 @@ export default function TodayAttendanceTable({ getUserName }: Props) {
               <Text style={{ fontWeight: '700' }}>
                 {(row.completedTasks || []).length}
               </Text>
-
-              {(row.completedTasks || []).map((task: any) => (
-                <Text key={task.id} style={{ fontSize: 10 }}>
-                  {new Date(task.completedAt).toLocaleTimeString([], {
-                    hour: '2-digit',
-                    minute: '2-digit',
-                  })}
-                </Text>
-              ))}
             </Pressable>
 
             <View style={styles.managedHeaderCell}>
-              {(row.activeTasks || []).length ? (
-                row.activeTasks.map((task: any) => (
-                  <Text
-                    key={task.id}
-                    numberOfLines={1}
-                    style={{ fontSize: 11 }}
-                  >
-                    {task.title}
-                  </Text>
-                ))
+              {(row.activeTasks || []).length > 0 ? (
+                <Text numberOfLines={1}>
+                  {row.activeTasks[0]?.title}
+                </Text>
               ) : (
                 <Text>-</Text>
               )}
             </View>
+
+            <Pressable
+              style={styles.managedHeaderCell}
+              onPress={() => {
+                setModalTitle('Pending Tasks');
+                setSelectedTasks(row.pendingTasks || []);
+                setShowTaskModal(true);
+              }}
+            >
+              <Text style={{ fontWeight: '700' }}>
+                {(row.pendingTasks || []).length}
+              </Text>
+            </Pressable>
           </View>
         ))}
       </View>
+
       <Modal
         visible={showTaskModal}
         transparent
@@ -152,25 +164,13 @@ export default function TodayAttendanceTable({ getUserName }: Props) {
                 marginBottom: 15,
               }}
             >
-              Completed Tasks
+              {modalTitle}
             </Text>
 
             <ScrollView>
               {selectedTasks.map((task: any) => (
                 <View key={task.id} style={{ marginBottom: 10 }}>
                   <Text>• {task.title}</Text>
-
-                  <Text
-                    style={{
-                      fontSize: 12,
-                      color: '#666',
-                    }}
-                  >
-                    {new Date(task.completedAt).toLocaleTimeString([], {
-                      hour: '2-digit',
-                      minute: '2-digit',
-                    })}
-                  </Text>
                 </View>
               ))}
             </ScrollView>

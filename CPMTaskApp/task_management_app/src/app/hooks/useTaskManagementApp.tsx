@@ -1570,15 +1570,29 @@ export function useTaskManagementApp() {
           ];
         }),
       ),
-      [taskId]: {
-        ...(prev[taskId] ??
-          createTimerState(durationMinutes, {
-            remaining: durationMinutes > 0 ? durationMinutes * 60 : 0,
-          })),
-        isPaused: false,
-        startedAt: prev[taskId]?.startedAt ?? getIsoNow(),
-        lastResumedAt: getIsoNow(),
-      },
+ [taskId]: {
+  ...(prev[taskId] ??
+    createTimerState(durationMinutes, {
+      startedAt: getIsoNow(),
+
+      // allow unlimited timer
+      remaining:
+        durationMinutes != null &&
+        durationMinutes > 0
+          ? durationMinutes * 60
+          : undefined,
+    })),
+
+  isPaused: false,
+
+  startedAt:
+    prev[taskId]?.startedAt ??
+    getIsoNow(),
+
+  lastResumedAt: getIsoNow(),
+
+  pauseStartedAt: undefined,
+},
     }));
     setTasks(prev =>
       prev.map(task => {

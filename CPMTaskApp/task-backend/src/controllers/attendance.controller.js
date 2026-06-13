@@ -1,5 +1,6 @@
 const Attendance = require('../models/Attendance');
 const Task = require('../models/task.model');
+const { Auth } = require('../models');
 
 exports.checkIn = async (req, res) => {
   const record = await Attendance.create(req.body);
@@ -48,11 +49,14 @@ exports.getTodayAttendance = async (req, res) => {
     });
 
     res.send(records);
+
   } catch (error) {
     console.log(error);
+
     res.status(500).json({
       message: error.message,
     });
+
   }
 };
 
@@ -63,11 +67,14 @@ exports.getAttendanceStatus = async (req, res) => {
     }).sort({ checkInTime: -1 });
 
     res.send(record);
+
   } catch (error) {
     console.log(error);
+
     res.status(500).json({
       message: error.message,
     });
+
   }
 };
 
@@ -79,6 +86,10 @@ exports.getTodayReport = async (req, res) => {
     const end = new Date();
     end.setHours(23, 59, 59, 999);
 
+    const users = await Auth.find()
+      .select('_id')
+      .lean();
+
     const attendance = await Attendance.find({
       checkInTime: {
         $gte: start,
@@ -89,53 +100,48 @@ exports.getTodayReport = async (req, res) => {
     const completedTasks = await Task.find({
       status: 'completed',
       completedAt: {
-        $gte: start,
-        $lte: end,
+        $exists: true,
+        $ne: null,
       },
-    }).lean();
+    })
+      .select('_id title assignedTo completedAt')
+      .populate('assignedTo', '_id')
+      .lean();
 
     const activeTasks = await Task.find({
-      status: {
-        $in: [
-          'pending',
-          'in_progress',
-          'under_review',
-          'rejected',
-        ],
-      },
+      status: 'in_progress',
+    }).lean();
+
+    const pendingTasks = await Task.find({
+      status: 'pending',
     }).lean();
 
     const usersMap = {};
 
+    users.forEach(user => {
+      usersMap[String(user._id)] = {
+        userId: String(user._id),
+        attendance: [],
+        completedTasks: [],
+        activeTasks: [],
+        pendingTasks: [],
+        totalHours: 0,
+      };
+    });
+
     attendance.forEach(item => {
       const userId = String(item.userId);
 
-      if (!usersMap[userId]) {
-        usersMap[userId] = {
-          userId,
-          attendance: [],
-          completedTasks: [],
-          activeTasks: [],
-          totalHours: 0,
-        };
-      }
+      if (!usersMap[userId]) return;
 
       usersMap[userId].attendance.push(item);
       usersMap[userId].totalHours += item.totalHours || 0;
     });
 
     completedTasks.forEach(task => {
-      const userId = String(task.assignedTo);
+      const userId = String(task.assignedTo?._id);
 
-      if (!usersMap[userId]) {
-        usersMap[userId] = {
-          userId,
-          attendance: [],
-          completedTasks: [],
-          activeTasks: [],
-          totalHours: 0,
-        };
-      }
+      if (!userId || !usersMap[userId]) return;
 
       usersMap[userId].completedTasks.push({
         id: task._id,
@@ -145,19 +151,22 @@ exports.getTodayReport = async (req, res) => {
     });
 
     activeTasks.forEach(task => {
-      const userId = String(task.assignedTo);
+      // const userId = String(task.assignedTo);
+      const userId = String(task.assignedTo?._id || task.assignedTo);
 
-      if (!usersMap[userId]) {
-        usersMap[userId] = {
-          userId,
-          attendance: [],
-          completedTasks: [],
-          activeTasks: [],
-          totalHours: 0,
-        };
-      }
+      if (!usersMap[userId]) return;
 
       usersMap[userId].activeTasks.push({
+        id: task._id,
+        title: task.title,
+      });
+    });
+
+    pendingTasks.forEach(task => {
+      const userId = String(task.assignedTo?._id || task.assignedTo);
+      if (!usersMap[userId]) return;
+
+      usersMap[userId].pendingTasks.push({
         id: task._id,
         title: task.title,
       });
@@ -167,6 +176,7 @@ exports.getTodayReport = async (req, res) => {
       success: true,
       data: Object.values(usersMap),
     });
+
   } catch (error) {
     console.log(error);
 
@@ -174,5 +184,7 @@ exports.getTodayReport = async (req, res) => {
       success: false,
       message: error.message,
     });
+
   }
 };
+
