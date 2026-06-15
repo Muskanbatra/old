@@ -26,7 +26,11 @@ import {
   USERS,
   User,
 } from '../domain/model';
-import type { CreateUserInput, UpdateUserInput } from '../screens/types';
+import type {
+  CreateUserInput,
+  ManageUsersTab,
+  UpdateUserInput,
+} from '../screens/types';
 import {
   initializeFirebaseMessaging,
   type PushNotificationStatus,
@@ -57,6 +61,8 @@ export function useTaskManagementApp() {
   const [dashboardTab, setDashboardTab] = useState<DashboardTab>('home');
   const [taskTab, setTaskTab] = useState<TaskTab>('active');
   const [manageTab, setManageTab] = useState<ManageTab>('create');
+  const [manageUsersInitialTab, setManageUsersInitialTab] =
+    useState<ManageUsersTab>('add');
   const [progress, setProgress] = useState(0);
   const [_clockTick, setClockTick] = useState(() => Date.now());
   const [currentUser, setCurrentUser] = useState<User | null>(null);
@@ -598,7 +604,30 @@ export function useTaskManagementApp() {
     }
 
     refreshRelatedTasks({ force: true });
-  }, [authToken, currentUser, screen]);
+  }, [authToken, currentUser?.backendId, currentUser?.id, screen]);
+
+  useEffect(() => {
+    if (!authToken || !currentUser || screen !== 'manageUsers') {
+      return;
+    }
+
+    const refreshManageUsersData = async () => {
+      try {
+        const syncedUsers = await fetchAllUsers(authToken, {
+          replace: true,
+        });
+
+        await fetchRelatedTasks(authToken, {
+          silent: true,
+          sourceUsers: syncedUsers,
+        });
+      } catch (error) {
+        setUserActionError(getErrorMessage(error));
+      }
+    };
+
+    refreshManageUsersData();
+  }, [authToken, currentUser?.backendId, currentUser?.id, screen]);
 
   const syncDashboardTabForScreen = (targetScreen: Screen) => {
     if (targetScreen === 'dashboard') {
@@ -632,6 +661,10 @@ export function useTaskManagementApp() {
     if (nextScreen === screen) {
       syncDashboardTabForScreen(nextScreen);
       return;
+    }
+
+    if (nextScreen !== 'manageUsers') {
+      setManageUsersInitialTab('add');
     }
 
     if (!options?.skipHistory) {
@@ -672,6 +705,11 @@ export function useTaskManagementApp() {
   const openUserDetails = (userId: string) => {
     setSelectedUserId(userId);
     changeScreen('userDetails');
+  };
+
+  const openManageUsersAssignments = () => {
+    setManageUsersInitialTab('assignments');
+    changeScreen('manageUsers');
   };
 
   const getDefaultAssigneeId = (excludeUserId?: string) =>
@@ -1798,7 +1836,11 @@ export function useTaskManagementApp() {
     }
   };
 
-  const handleSubmitForReview = async (taskId: string, comment = '') => {
+  const handleSubmitForReview = async (
+    taskId: string,
+    comment = '',
+    options?: { nextScreen?: Screen },
+  ) => {
     const task = tasks.find(item => item.id === taskId);
     const submittedAt = Date.now();
     const currentTimer =
@@ -1835,7 +1877,10 @@ export function useTaskManagementApp() {
         pauseStartedAt: '',
         extensionHistory: currentTimer.extensionHistory,
       },
-      { successMessage: 'Task submitted for review.' },
+      {
+        successMessage: 'Task submitted for review.',
+        nextScreen: options?.nextScreen,
+      },
     );
 
     if (task) {
@@ -2651,6 +2696,8 @@ export function useTaskManagementApp() {
       handleUpdateUser,
       handleDeleteUser,
       openUserDetails,
+      manageUsersInitialTab,
+      openManageUsersAssignments,
       resetTaskForm,
       handleCreateTask,
       handleEditSelectedTask,

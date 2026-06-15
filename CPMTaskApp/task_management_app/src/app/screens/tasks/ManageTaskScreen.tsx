@@ -398,7 +398,12 @@ export function ManageTaskScreen(props: ManageTaskScreenProps) {
               icon="◌"
               text={`Assigned to: ${getUserName(task.assignedTo)}`}
             />
-            <MetaPill icon="◴" text={`Due: ${task.dueDate}, ${task.dueTime}`} />
+            <MetaPill
+              icon="◴"
+              text={`Due: ${task.dueDate}${
+                task.dueTime ? `, ${task.dueTime}` : ''
+              }`}
+            />
           </View>
 
           <View style={styles.taskMetaRow}>

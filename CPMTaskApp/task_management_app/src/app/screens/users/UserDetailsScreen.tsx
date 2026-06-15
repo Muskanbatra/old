@@ -1,5 +1,14 @@
 import React, { useMemo, useState } from 'react';
-import { Alert, Linking, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
+import {
+  Alert,
+  Platform,
+  Pressable,
+  ScrollView,
+  Share,
+  Text,
+  TextInput,
+  View,
+} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import {
   BottomNav,
@@ -61,10 +70,6 @@ function getUserTaskIdentityKeys(selectedUser: User | null, users: User[]) {
   );
 }
 
-function escapeSpreadsheetCell(value: string) {
-  return value.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-}
-
 function sanitizePdfText(value: string) {
   return value
     .replace(/[^\x20-\x7E]/g, '?')
@@ -74,7 +79,8 @@ function sanitizePdfText(value: string) {
 }
 
 function encodeBase64(value: string) {
-  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/=';
+  const chars =
+    'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/=';
   let output = '';
   let index = 0;
 
@@ -87,24 +93,52 @@ function encodeBase64(value: string) {
     const enc3 = Number.isNaN(chr2) ? 64 : ((chr2 & 15) << 2) | (chr3 >> 6);
     const enc4 = Number.isNaN(chr3) ? 64 : chr3 & 63;
 
-    output += chars.charAt(enc1) + chars.charAt(enc2) + chars.charAt(enc3) + chars.charAt(enc4);
+    output +=
+      chars.charAt(enc1) +
+      chars.charAt(enc2) +
+      chars.charAt(enc3) +
+      chars.charAt(enc4);
   }
 
   return output;
 }
 
 function createSimplePdf(lines: string[]) {
-  const safeLines = lines.slice(0, 34).map(sanitizePdfText);
-  const textCommands = safeLines
-    .map((line, index) => `1 0 0 1 40 ${760 - index * 20} Tm (${line}) Tj`)
-    .join('\n');
-  const stream = `BT\n/F1 11 Tf\n${textCommands}\nET`;
+  const pageLineLimit = 34;
+  const safeLines = lines.map(sanitizePdfText);
+  const pages = Array.from(
+    { length: Math.max(1, Math.ceil(safeLines.length / pageLineLimit)) },
+    (_, pageIndex) =>
+      safeLines.slice(
+        pageIndex * pageLineLimit,
+        pageIndex * pageLineLimit + pageLineLimit,
+      ),
+  );
+  const fontObjectId = 3 + pages.length * 2;
+  const pageObjects = pages.map((pageLines, pageIndex) => {
+    const pageObjectId = 3 + pageIndex * 2;
+    const contentObjectId = pageObjectId + 1;
+    const textCommands = pageLines
+      .map(
+        (line, lineIndex) =>
+          `1 0 0 1 40 ${760 - lineIndex * 20} Tm (${line}) Tj`,
+      )
+      .join('\n');
+    const stream = `BT\n/F1 11 Tf\n${textCommands}\nET`;
+
+    return {
+      pageObject: `${pageObjectId} 0 obj\n<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 ${fontObjectId} 0 R >> >> /Contents ${contentObjectId} 0 R >>\nendobj\n`,
+      contentObject: `${contentObjectId} 0 obj\n<< /Length ${stream.length} >>\nstream\n${stream}\nendstream\nendobj\n`,
+      pageObjectId,
+    };
+  });
   const objects = [
     '1 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\nendobj\n',
-    '2 0 obj\n<< /Type /Pages /Kids [3 0 R] /Count 1 >>\nendobj\n',
-    '3 0 obj\n<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 4 0 R >> >> /Contents 5 0 R >>\nendobj\n',
-    '4 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>\nendobj\n',
-    `5 0 obj\n<< /Length ${stream.length} >>\nstream\n${stream}\nendstream\nendobj\n`,
+    `2 0 obj\n<< /Type /Pages /Kids [${pageObjects
+      .map(page => `${page.pageObjectId} 0 R`)
+      .join(' ')}] /Count ${pageObjects.length} >>\nendobj\n`,
+    ...pageObjects.flatMap(page => [page.pageObject, page.contentObject]),
+    `${fontObjectId} 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>\nendobj\n`,
   ];
   let pdf = '%PDF-1.4\n';
   const offsets = [0];
@@ -119,25 +153,31 @@ function createSimplePdf(lines: string[]) {
   offsets.slice(1).forEach(offset => {
     pdf += `${String(offset).padStart(10, '0')} 00000 n \n`;
   });
-  pdf += `trailer\n<< /Size ${objects.length + 1} /Root 1 0 R >>\nstartxref\n${xrefOffset}\n%%EOF`;
+  pdf += `trailer\n<< /Size ${
+    objects.length + 1
+  } /Root 1 0 R >>\nstartxref\n${xrefOffset}\n%%EOF`;
 
   return pdf;
 }
 
 export function UserDetailsScreen(props: UserDetailsScreenProps) {
-  const { selectedUser, users, tasks, goBack, renderDashboardNavItem, getUserName } = props;
+  const {
+    selectedUser,
+    users,
+    tasks,
+    goBack,
+    renderDashboardNavItem,
+    getUserName,
+  } = props;
   const [activeTaskTab, setActiveTaskTab] = useState<UserTaskTab>('active');
   const [taskSearchQuery, setTaskSearchQuery] = useState('');
   const [taskPage, setTaskPage] = useState(1);
 
-  const userTasks = useMemo(
-    () => {
-      const selectedUserKeys = getUserTaskIdentityKeys(selectedUser, users);
+  const userTasks = useMemo(() => {
+    const selectedUserKeys = getUserTaskIdentityKeys(selectedUser, users);
 
-      return tasks.filter(task => selectedUserKeys.has(task.assignedTo));
-    },
-    [selectedUser, tasks, users],
-  );
+    return tasks.filter(task => selectedUserKeys.has(task.assignedTo));
+  }, [selectedUser, tasks, users]);
 
   const groupedTasks = useMemo(
     () => ({
@@ -179,7 +219,10 @@ export function UserDetailsScreen(props: UserDetailsScreenProps) {
         return searchableText.includes(normalizedSearchQuery);
       })
     : visibleTasks;
-  const totalTaskPages = Math.max(1, Math.ceil(filteredTasks.length / TASKS_PER_PAGE));
+  const totalTaskPages = Math.max(
+    1,
+    Math.ceil(filteredTasks.length / TASKS_PER_PAGE),
+  );
   const currentTaskPage = Math.min(taskPage, totalTaskPages);
   const paginatedTasks = filteredTasks.slice(
     (currentTaskPage - 1) * TASKS_PER_PAGE,
@@ -197,78 +240,75 @@ export function UserDetailsScreen(props: UserDetailsScreenProps) {
     setTaskPage(1);
   };
 
-  const buildReportRows = () =>
-    (Object.keys(TASK_TAB_LABELS) as UserTaskTab[]).flatMap(tab =>
-      groupedTasks[tab].length
-        ? groupedTasks[tab].map(task => ({
-            bucket: TASK_TAB_LABELS[tab],
-            title: task.title,
-            status: formatTaskStatus(task.status),
-            due: [task.dueDate, task.dueTime].filter(Boolean).join(' '),
-            assignedBy: getUserName(task.assignedBy),
-          }))
-        : [
-            {
-              bucket: TASK_TAB_LABELS[tab],
-              title: 'No tasks',
-              status: '',
-              due: '',
-              assignedBy: '',
-            },
-          ],
-    );
+  const buildDoneReportRows = () =>
+    groupedTasks.completed.map(task => ({
+      title: task.title,
+      status: formatTaskStatus(task.status),
+      due: [task.dueDate, task.dueTime].filter(Boolean).join(' '),
+      assignedBy: getUserName(task.assignedBy),
+      completedAt: task.completedAt
+        ? new Date(task.completedAt).toLocaleString()
+        : '',
+    }));
 
-  const openReportFile = async (filename: string, mimeType: string, data: string, base64 = false) => {
+  const shareReportFile = async (
+    filename: string,
+    mimeType: string,
+    data: string,
+    base64 = false,
+  ) => {
     const href = `data:${mimeType}${base64 ? ';base64' : ''},${
       base64 ? data : encodeURIComponent(data)
     }`;
 
     try {
-      await Linking.openURL(href);
+      await Share.share(
+        {
+          title: filename,
+          url: href,
+          message:
+            Platform.OS === 'android'
+              ? href
+              : `${selectedUser?.name ?? 'User'} done task report`,
+        },
+        {
+          dialogTitle: `Download ${filename}`,
+          subject: filename,
+        },
+      );
     } catch {
-      Alert.alert('Download failed', `Could not open ${filename}.`);
+      Alert.alert('Download failed', `Could not share ${filename}.`);
     }
   };
 
-  const downloadUserReport = async (format: 'xls' | 'pdf') => {
+  const downloadUserReport = async () => {
     if (!selectedUser) {
       return;
     }
 
-    const rows = buildReportRows();
-    const filenameBase = `${selectedUser.name.replace(/\s+/g, '-').toLowerCase()}-task-report`;
-
-    if (format === 'xls') {
-      const tableRows = rows
-        .map(
-          row =>
-            `<tr><td>${escapeSpreadsheetCell(row.bucket)}</td><td>${escapeSpreadsheetCell(
-              row.title,
-            )}</td><td>${escapeSpreadsheetCell(row.status)}</td><td>${escapeSpreadsheetCell(
-              row.due,
-            )}</td><td>${escapeSpreadsheetCell(row.assignedBy)}</td></tr>`,
-        )
-        .join('');
-      const html = `<html><body><h2>${escapeSpreadsheetCell(
-        selectedUser.name,
-      )}</h2><p>${escapeSpreadsheetCell(selectedUser.email)} | ${escapeSpreadsheetCell(
-        selectedUser.role,
-      )}</p><table border="1"><tr><th>Bucket</th><th>Task</th><th>Status</th><th>Due</th><th>Assigned By</th></tr>${tableRows}</table></body></html>`;
-
-      await openReportFile(`${filenameBase}.xls`, 'application/vnd.ms-excel', html);
-      return;
-    }
-
+    const rows = buildDoneReportRows();
+    const filenameBase = `${selectedUser.name
+      .replace(/\s+/g, '-')
+      .toLowerCase()}-task-report`;
     const pdfLines = [
-      `${selectedUser.name} task summary`,
+      `${selectedUser.name} done task report`,
       `Email: ${selectedUser.email}`,
       `Role: ${selectedUser.role}`,
-      `Total tasks: ${userTasks.length}`,
+      `Done tasks: ${rows.length}`,
       '',
-      ...rows.map(row => `${row.bucket}: ${row.title} ${row.status ? `(${row.status})` : ''}`),
+      ...(rows.length
+        ? rows.flatMap((row, index) => [
+            `${index + 1}. ${row.title}`,
+            `   Status: ${row.status}`,
+            `   Due: ${row.due || '-'}`,
+            `   Completed: ${row.completedAt || '-'}`,
+            `   Assigned by: ${row.assignedBy || '-'}`,
+            '',
+          ])
+        : ['No done tasks found.']),
     ];
 
-    await openReportFile(
+    await shareReportFile(
       `${filenameBase}.pdf`,
       'application/pdf',
       encodeBase64(createSimplePdf(pdfLines)),
@@ -279,9 +319,15 @@ export function UserDetailsScreen(props: UserDetailsScreenProps) {
   if (!selectedUser) {
     return (
       <SafeAreaView style={styles.page}>
-        <ScrollView contentContainerStyle={styles.formScroll} showsVerticalScrollIndicator={false}>
+        <ScrollView
+          contentContainerStyle={styles.formScroll}
+          showsVerticalScrollIndicator={false}
+        >
           <ScreenHeader title="User Details" onBack={goBack} />
-          <EmptyState title="User not found" subtitle="Choose a team member from task assignment." />
+          <EmptyState
+            title="User not found"
+            subtitle="Choose a team member from task assignment."
+          />
         </ScrollView>
         <BottomNav activeTab="profile" renderItem={renderDashboardNavItem} />
       </SafeAreaView>
@@ -320,7 +366,8 @@ export function UserDetailsScreen(props: UserDetailsScreenProps) {
       <ScrollView
         style={styles.flexOne}
         contentContainerStyle={styles.formScroll}
-        showsVerticalScrollIndicator={false}>
+        showsVerticalScrollIndicator={false}
+      >
         <ScreenHeader title="User Details" onBack={goBack} />
 
         <SectionCard title={selectedUser.name}>
@@ -329,13 +376,9 @@ export function UserDetailsScreen(props: UserDetailsScreenProps) {
           {/* <InfoRow label="Total Tasks" value={String(userTasks.length)} /> */}
           <View style={styles.userDetailsDownloadRow}>
             <Pressable
-              onPress={() => downloadUserReport('xls')}
-              style={styles.userDetailsDownloadButton}>
-              <Text style={styles.userDetailsDownloadText}>Download XL</Text>
-            </Pressable>
-            <Pressable
-              onPress={() => downloadUserReport('pdf')}
-              style={styles.userDetailsDownloadButton}>
+              onPress={downloadUserReport}
+              style={styles.userDetailsDownloadButton}
+            >
               <Text style={styles.userDetailsDownloadText}>Download PDF</Text>
             </Pressable>
           </View>
@@ -345,28 +388,31 @@ export function UserDetailsScreen(props: UserDetailsScreenProps) {
           horizontal
           style={styles.myTasksTabScroll}
           showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.myTasksTabScrollContent}>
+          contentContainerStyle={styles.myTasksTabScrollContent}
+        >
           <View style={styles.myTasksTabRow}>
-          {overviewCards.map(card => (
-            <Pressable
-              key={card.key}
-              onPress={() => handleTaskTabPress(card.key)}
-              style={[
-                styles.myTasksTabButton,
-                activeTaskTab === card.key && styles.myTasksTabButtonActive,
-              ]}>
-              {activeTaskTab === card.key ? (
-                <GradientSurface style={styles.myTasksTabGradient} />
-              ) : null}
-              <Text
+            {overviewCards.map(card => (
+              <Pressable
+                key={card.key}
+                onPress={() => handleTaskTabPress(card.key)}
                 style={[
-                  styles.myTasksTabText,
-                  activeTaskTab === card.key && styles.myTasksTabTextActive,
-                ]}>
-                {card.label}({card.value})
-              </Text>
-            </Pressable>
-          ))}
+                  styles.myTasksTabButton,
+                  activeTaskTab === card.key && styles.myTasksTabButtonActive,
+                ]}
+              >
+                {activeTaskTab === card.key ? (
+                  <GradientSurface style={styles.myTasksTabGradient} />
+                ) : null}
+                <Text
+                  style={[
+                    styles.myTasksTabText,
+                    activeTaskTab === card.key && styles.myTasksTabTextActive,
+                  ]}
+                >
+                  {card.label}({card.value})
+                </Text>
+              </Pressable>
+            ))}
           </View>
         </ScrollView>
 
@@ -406,19 +452,24 @@ export function UserDetailsScreen(props: UserDetailsScreenProps) {
                     style={[
                       styles.paginationButton,
                       currentTaskPage === 1 && styles.paginationButtonDisabled,
-                    ]}>
+                    ]}
+                  >
                     <Text style={styles.paginationButtonText}>Previous</Text>
                   </Pressable>
                   <Text style={styles.paginationText}>
                     Page {currentTaskPage} of {totalTaskPages}
                   </Text>
                   <Pressable
-                    onPress={() => setTaskPage(prev => Math.min(totalTaskPages, prev + 1))}
+                    onPress={() =>
+                      setTaskPage(prev => Math.min(totalTaskPages, prev + 1))
+                    }
                     disabled={currentTaskPage === totalTaskPages}
                     style={[
                       styles.paginationButton,
-                      currentTaskPage === totalTaskPages && styles.paginationButtonDisabled,
-                    ]}>
+                      currentTaskPage === totalTaskPages &&
+                        styles.paginationButtonDisabled,
+                    ]}
+                  >
                     <Text style={styles.paginationButtonText}>Next</Text>
                   </Pressable>
                 </View>

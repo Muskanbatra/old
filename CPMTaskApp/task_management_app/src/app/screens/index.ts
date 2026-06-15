@@ -14,3 +14,4 @@ export { MyTasksScreen } from './tasks/MyTasksScreen';
 export { ProfileScreen } from './profile/ProfileScreen';
 export { ManageUsersScreen } from './users/ManageUsersScreen';
 export { UserDetailsScreen } from './users/UserDetailsScreen';
+export { TodayAttendanceScreen } from './attendance/TodayAttendanceScreen';

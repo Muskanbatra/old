@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
   Modal,
   Pressable,
@@ -21,11 +21,12 @@ import { COLORS, User } from '../../domain/model';
 import { styles } from '../../theme/styles';
 import type {
   CreateUserInput,
+  ManageUsersTab,
   ScreenRendererProps,
   UpdateUserInput,
 } from '../types';
 
-type UserTab = 'add' | 'list' | 'assignments';
+type UserTab = ManageUsersTab;
 
 type ManageUsersScreenProps = Pick<
   ScreenRendererProps,
@@ -41,7 +42,9 @@ type ManageUsersScreenProps = Pick<
   | 'userActionError'
   | 'isSavingUser'
   | 'openUserDetails'
->;
+> & {
+  initialTab?: UserTab;
+};
 
 const INITIAL_FORM = {
   name: '',
@@ -93,20 +96,29 @@ export function ManageUsersScreen(props: ManageUsersScreenProps) {
     userActionError,
     isSavingUser,
     openUserDetails,
+    initialTab = 'add',
   } = props;
-  const [activeTab, setActiveTab] = useState<UserTab>('add');
+  const [activeTab, setActiveTab] = useState<UserTab>(initialTab);
   const [editingUserId, setEditingUserId] = useState<string | null>(null);
   const [userForm, setUserForm] = useState(INITIAL_FORM);
   const [formErrors, setFormErrors] = useState<FormErrors>({});
   const [showRolePicker, setShowRolePicker] = useState(false);
+  const [userListSearchQuery, setUserListSearchQuery] = useState('');
+  const [assignmentSearchQuery, setAssignmentSearchQuery] = useState('');
+
+  useEffect(() => {
+    setActiveTab(initialTab);
+  }, [initialTab]);
 
   const uniqueUsers = useMemo(() => {
     const seen = new Set<string>();
 
     return users.filter(user => {
-      const identityKeys = [user.id, user.backendId, user.email.toLowerCase()].filter(
-        (value): value is string => Boolean(value?.trim()),
-      );
+      const identityKeys = [
+        user.id,
+        user.backendId,
+        user.email.toLowerCase(),
+      ].filter((value): value is string => Boolean(value?.trim()));
 
       if (identityKeys.some(identityKey => seen.has(identityKey))) {
         return false;
@@ -140,6 +152,51 @@ export function ManageUsersScreen(props: ManageUsersScreenProps) {
       };
     });
   }, [tasks, uniqueUsers, users]);
+
+  const normalizedUserListSearchQuery = userListSearchQuery
+    .trim()
+    .toLowerCase();
+  const visibleUsers = useMemo(() => {
+    if (!normalizedUserListSearchQuery) {
+      return uniqueUsers;
+    }
+
+    return uniqueUsers.filter(user =>
+      [user.name, user.email, user.telephone, user.role]
+        .filter(Boolean)
+        .join(' ')
+        .toLowerCase()
+        .includes(normalizedUserListSearchQuery),
+    );
+  }, [normalizedUserListSearchQuery, uniqueUsers]);
+
+  const normalizedAssignmentSearchQuery = assignmentSearchQuery
+    .trim()
+    .toLowerCase();
+  const visibleAssignmentSummary = useMemo(() => {
+    if (!normalizedAssignmentSearchQuery) {
+      return assignmentSummary;
+    }
+
+    return assignmentSummary.filter(item =>
+      [
+        item.user.name,
+        item.user.email,
+        item.user.telephone,
+        item.user.role,
+        String(item.tasks.length),
+        String(item.pending),
+        String(item.active),
+        String(item.review),
+        String(item.done),
+        ...item.tasks.map(task => task.title),
+      ]
+        .filter(Boolean)
+        .join(' ')
+        .toLowerCase()
+        .includes(normalizedAssignmentSearchQuery),
+    );
+  }, [assignmentSummary, normalizedAssignmentSearchQuery]);
 
   const resetUserForm = () => {
     setEditingUserId(null);
@@ -244,11 +301,7 @@ export function ManageUsersScreen(props: ManageUsersScreenProps) {
 
   return (
     <SafeAreaView style={styles.page}>
-      <ScrollView
-        style={styles.flexOne}
-        contentContainerStyle={styles.formScroll}
-        showsVerticalScrollIndicator={false}
-      >
+      <View style={styles.manageUsersFixedHeader}>
         <ScreenHeader title="Manage Users" onBack={goBack} />
 
         <ScrollView
@@ -282,6 +335,36 @@ export function ManageUsersScreen(props: ManageUsersScreenProps) {
           </View>
         </ScrollView>
 
+        {activeTab === 'list' && !isUsersLoading && uniqueUsers.length ? (
+          <TextInput
+            value={userListSearchQuery}
+            onChangeText={setUserListSearchQuery}
+            placeholder="Search users"
+            placeholderTextColor="#94A3B8"
+            style={styles.taskListSearchInput}
+            autoCapitalize="none"
+          />
+        ) : null}
+
+        {activeTab === 'assignments' && assignmentSummary.length ? (
+          <TextInput
+            value={assignmentSearchQuery}
+            onChangeText={setAssignmentSearchQuery}
+            placeholder="Search task assignments"
+            placeholderTextColor="#94A3B8"
+            style={styles.taskListSearchInput}
+            autoCapitalize="none"
+          />
+        ) : null}
+      </View>
+
+      <ScrollView
+        style={styles.flexOne}
+        contentContainerStyle={styles.manageUsersBodyScroll}
+        keyboardShouldPersistTaps="handled"
+        automaticallyAdjustKeyboardInsets={false}
+        showsVerticalScrollIndicator={false}
+      >
         {activeTab === 'add' ? (
           <>
             <FormCard>
@@ -416,56 +499,69 @@ export function ManageUsersScreen(props: ManageUsersScreenProps) {
               subtitle="Pulling the latest team directory."
             />
           ) : uniqueUsers.length ? (
-            <View style={styles.manageUsersList}>
-              {uniqueUsers.map(user => (
-                <View key={user.id} style={styles.userRowCard}>
-                  <View style={styles.userRowMain}>
-                    <View style={styles.userAvatarMini}>
-                      <GradientSurface style={styles.userAvatarMiniGradient} />
-                      <Text style={styles.userAvatarMiniText}>
-                        {user.name
-                          .split(' ')
-                          .map(part => part[0])
-                          .join('')
-                          .slice(0, 2)
-                          .toUpperCase()}
-                      </Text>
+            <>
+              {visibleUsers.length ? (
+                <View style={styles.manageUsersList}>
+                  {visibleUsers.map(user => (
+                    <View key={user.id} style={styles.userRowCard}>
+                      <View style={styles.userRowMain}>
+                        <View style={styles.userAvatarMini}>
+                          <GradientSurface
+                            style={styles.userAvatarMiniGradient}
+                          />
+                          <Text style={styles.userAvatarMiniText}>
+                            {user.name
+                              .split(' ')
+                              .map(part => part[0])
+                              .join('')
+                              .slice(0, 2)
+                              .toUpperCase()}
+                          </Text>
+                        </View>
+                        <View style={styles.flexOne}>
+                          <Text style={styles.userRowName}>{user.name}</Text>
+                          <Text style={styles.userRowMeta}>{user.email}</Text>
+                          {user.telephone?.trim() ? (
+                            <Text style={styles.userRowMeta}>
+                              {user.telephone}
+                            </Text>
+                          ) : null}
+                          <Text style={styles.userRowMeta}>{user.role}</Text>
+                        </View>
+                      </View>
+                      <View style={styles.userRowActions}>
+                        <Pressable
+                          onPress={() => startEditing(user)}
+                          style={styles.userActionButton}
+                        >
+                          <Text style={styles.userActionEdit}>✎</Text>
+                        </Pressable>
+                        <Pressable
+                          onPress={() => handleDeleteUser(user.id)}
+                          disabled={currentUser?.id === user.id || isSavingUser}
+                          style={styles.userActionButton}
+                        >
+                          <Text
+                            style={[
+                              styles.userActionDelete,
+                              (currentUser?.id === user.id || isSavingUser) &&
+                                styles.userActionDisabled,
+                            ]}
+                          >
+                            ✕
+                          </Text>
+                        </Pressable>
+                      </View>
                     </View>
-                    <View style={styles.flexOne}>
-                      <Text style={styles.userRowName}>{user.name}</Text>
-                      <Text style={styles.userRowMeta}>{user.email}</Text>
-                      {user.telephone?.trim() ? (
-                        <Text style={styles.userRowMeta}>{user.telephone}</Text>
-                      ) : null}
-                      <Text style={styles.userRowMeta}>{user.role}</Text>
-                    </View>
-                  </View>
-                  <View style={styles.userRowActions}>
-                    <Pressable
-                      onPress={() => startEditing(user)}
-                      style={styles.userActionButton}
-                    >
-                      <Text style={styles.userActionEdit}>✎</Text>
-                    </Pressable>
-                    <Pressable
-                      onPress={() => handleDeleteUser(user.id)}
-                      disabled={currentUser?.id === user.id || isSavingUser}
-                      style={styles.userActionButton}
-                    >
-                      <Text
-                        style={[
-                          styles.userActionDelete,
-                          (currentUser?.id === user.id || isSavingUser) &&
-                            styles.userActionDisabled,
-                        ]}
-                      >
-                        ✕
-                      </Text>
-                    </Pressable>
-                  </View>
+                  ))}
                 </View>
-              ))}
-            </View>
+              ) : (
+                <EmptyState
+                  title="No matching users"
+                  subtitle="Try a different name, email, phone, or role."
+                />
+              )}
+            </>
           ) : (
             <EmptyState
               title="No users yet"
@@ -476,41 +572,44 @@ export function ManageUsersScreen(props: ManageUsersScreenProps) {
 
         {activeTab === 'assignments' ? (
           assignmentSummary.length ? (
-            <View style={styles.assignmentSummaryList}>
-              {assignmentSummary.map(item => (
-                <Pressable
-                  key={item.user.id}
-                  onPress={() => openUserDetails(item.user.id)}
-                  style={styles.assignmentCard}
-                >
-                  <View style={styles.assignmentHeader}>
-                    <View>
-                      <Text style={styles.assignmentName}>
-                        {item.user.name}
-                      </Text>
-                      <Text style={styles.assignmentRole}>
-                        {item.user.role}
-                      </Text>
-                    </View>
-                    <Text style={styles.assignmentTotal}>
-                      {item.tasks.length} tasks (View)
-                    </Text>
-                    
-                  </View>
-
-                  <View style={styles.assignmentStatsRow}>
-                    <View
-                      style={[
-                        styles.assignmentStatPill,
-                        styles.overviewCardPending,
-                      ]}
+            <>
+              {visibleAssignmentSummary.length ? (
+                <View style={styles.assignmentSummaryList}>
+                  {visibleAssignmentSummary.map(item => (
+                    <Pressable
+                      key={item.user.id}
+                      onPress={() => openUserDetails(item.user.id)}
+                      style={styles.assignmentCard}
                     >
-                      <Text style={styles.assignmentStatLabel}>Pending</Text>
-                      <Text style={styles.assignmentStatValue}>
-                        {item.pending}
-                      </Text>
-                    </View>
-                    {/* <View
+                      <View style={styles.assignmentHeader}>
+                        <View>
+                          <Text style={styles.assignmentName}>
+                            {item.user.name}
+                          </Text>
+                          <Text style={styles.assignmentRole}>
+                            {item.user.role}
+                          </Text>
+                        </View>
+                        <Text style={styles.assignmentTotal}>
+                          {item.tasks.length} tasks (View)
+                        </Text>
+                      </View>
+
+                      <View style={styles.assignmentStatsRow}>
+                        <View
+                          style={[
+                            styles.assignmentStatPill,
+                            styles.assignmentStatPurpleSoft,
+                          ]}
+                        >
+                          <Text style={styles.assignmentStatLabel}>
+                            Pending
+                          </Text>
+                          <Text style={styles.assignmentStatValue}>
+                            {item.pending}
+                          </Text>
+                        </View>
+                        {/* <View
                       style={[
                         styles.assignmentStatPill,
                         styles.overviewCardActive,
@@ -521,42 +620,45 @@ export function ManageUsersScreen(props: ManageUsersScreenProps) {
                         {item.active}
                       </Text>
                     </View> */}
-                    <View
-                      style={[
-                        styles.assignmentStatPill,
-                        styles.overviewCardReview,
-                      ]}
-                    >
-                      <Text style={styles.assignmentStatLabel}>Review</Text>
-                      <Text style={styles.assignmentStatValue}>
-                        {item.review}
-                      </Text>
-                    </View>
-                     <View
-                      style={[
-                        styles.assignmentStatPill,
-                        styles.overviewCardCompleted,
-                      ]}
-                    >
-                      <Text style={styles.assignmentStatLabel}>Done</Text>
-                      <Text style={styles.assignmentStatValue}>
-                        {item.done}
-                      </Text>
-                    </View>
-                  </View>
-                  <View style={styles.assignmentStatsRow}>
-                   
-                
-                  </View>
+                        <View
+                          style={[
+                            styles.assignmentStatPill,
+                            styles.assignmentStatPurple,
+                          ]}
+                        >
+                          <Text style={styles.assignmentStatLabel}>Review</Text>
+                          <Text style={styles.assignmentStatValue}>
+                            {item.review}
+                          </Text>
+                        </View>
+                        <View
+                          style={[
+                            styles.assignmentStatPill,
+                            styles.assignmentStatPurpleStrong,
+                          ]}
+                        >
+                          <Text style={styles.assignmentStatLabel}>Done</Text>
+                          <Text style={styles.assignmentStatValue}>
+                            {item.done}
+                          </Text>
+                        </View>
+                      </View>
                       {/* <View style={styles.assignmentCardFooter}>
                       <Text style={styles.assignmentOpenText}>
                         Tap to view full details
                       </Text>
                       <Text style={styles.assignmentOpenArrow}>›</Text>
                     </View> */}
-                </Pressable>
-              ))}
-            </View>
+                    </Pressable>
+                  ))}
+                </View>
+              ) : (
+                <EmptyState
+                  title="No matching assignments"
+                  subtitle="Try a different user, role, task title, or count."
+                />
+              )}
+            </>
           ) : (
             <EmptyState
               title="No assignments yet"

@@ -16,6 +16,7 @@ import {
   TaskDetailsScreen,
   UserDetailsScreen,
   VerifyOtpScreen,
+  TodayAttendanceScreen,
 } from '../screens';
 import type { ScreenRendererProps } from '../screens/types';
 
@@ -104,6 +105,7 @@ export function ScreenRenderer(props: ScreenRendererProps) {
         getUserName={props.getUserName}
         notifications={props.notifications}
         openNotification={props.openNotification}
+        openManageUsersAssignments={props.openManageUsersAssignments}
       />
     );
   }
@@ -141,11 +143,25 @@ export function ScreenRenderer(props: ScreenRendererProps) {
   }
 
   if (screen === 'manageUsers') {
-    return <ManageUsersScreen {...props} />;
+    return (
+      <ManageUsersScreen
+        {...props}
+        initialTab={props.manageUsersInitialTab}
+      />
+    );
   }
 
   if (screen === 'userDetails') {
     return <UserDetailsScreen {...props} />;
+  }
+
+  if (screen === 'todayAttendance') {
+    return (
+      <TodayAttendanceScreen
+        getUserName={props.getUserName}
+        goBack={props.goBack}
+      />
+    );
   }
 
   return null;

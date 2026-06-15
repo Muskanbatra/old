@@ -3,6 +3,7 @@ import { Pressable, ScrollView, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Svg, { Path } from 'react-native-svg';
 import {
+  ActionButton,
   BottomNav,
   EmptyState,
   GradientSurface,
@@ -15,6 +16,7 @@ import { DateRangePicker, type DateRange } from './DateRangePicker';
 import type { ScreenRendererProps } from '../types';
 import AttendanceScreen from '../attendance/AttendanceScreen';
 import TodayAttendanceTable from '../attendance/TodayAttendanceTable';
+import { ReportCard } from '../attendance/ReportCard';
 
 type DashboardScreenProps = Pick<
   ScreenRendererProps,
@@ -29,8 +31,9 @@ type DashboardScreenProps = Pick<
   | 'getUserName'
   | 'notifications'
   | 'openNotification'
+  | 'openManageUsersAssignments'
 > & {
-    currentUserName?: string;
+  currentUserName?: string;
 };
 
 const DATE_FILTER_DAYS = 7;
@@ -141,6 +144,7 @@ export function DashboardScreen(props: DashboardScreenProps) {
     setScreen,
     renderDashboardNavItem,
     getUserName,
+    openManageUsersAssignments,
   } = props;
 
   const myTasks = tasks.filter(
@@ -169,6 +173,8 @@ export function DashboardScreen(props: DashboardScreenProps) {
   const doneCount =
     homeStats.find(item => item.label.toLowerCase() === 'done')?.value ??
     completedTasks.length;
+  const isAdmin = currentUser?.role?.toLowerCase() === 'admin';
+  const isEmployee = currentUser?.role?.toLowerCase() === 'employee';
   const overviewCards = [
     {
       label: 'Created',
@@ -228,7 +234,8 @@ export function DashboardScreen(props: DashboardScreenProps) {
       userId: task.assignedTo,
       userName: getUserName(task.assignedTo),
       pending: task.status === 'pending' ? 1 : 0,
-      review: task.status === 'under_review' || task.status === 'rejected' ? 1 : 0,
+      review:
+        task.status === 'under_review' || task.status === 'rejected' ? 1 : 0,
       done: task.status === 'completed' ? 1 : 0,
       total: 1,
     });
@@ -255,17 +262,14 @@ export function DashboardScreen(props: DashboardScreenProps) {
   return (
     <SafeAreaView style={styles.page}>
       <ScrollView contentContainerStyle={styles.dashboardScroll}>
-          <AttendanceScreen
-          userId={String(currentUser?.backendId ?? currentUser?.id ?? '')}
-        />
-        <TodayAttendanceTable getUserName={getUserName} />
+        {/* <TodayAttendanceTable getUserName={getUserName} /> */}
         <View style={styles.heroCard}>
           <GradientSurface style={styles.heroGradient} />
           <View style={styles.heroTopRow}>
             <View style={styles.flexOne}>
               <Text style={styles.heroEyebrow}>Welcome Back,</Text>
               <Text style={styles.heroGreeting}>
-                {currentUserName ?? currentUser?.name ?? 'Alex Johnson'}
+                {currentUserName ?? currentUser?.name}
               </Text>
             </View>
             <Pressable onPress={() => setScreen('notifications')}>
@@ -279,7 +283,11 @@ export function DashboardScreen(props: DashboardScreenProps) {
               </View>
             </Pressable>
           </View>
-
+          {isEmployee ? (
+            <AttendanceScreen
+              userId={String(currentUser?.backendId ?? currentUser?.id ?? '')}
+            />
+          ) : null}
           <View style={styles.statsGrid}>
             {[
               { label: 'Pending', value: pendingCount },
@@ -293,6 +301,34 @@ export function DashboardScreen(props: DashboardScreenProps) {
             ))}
           </View>
         </View>
+
+        {isAdmin ? (
+          <View style={styles.userRowMain}>
+            <ReportCard
+              title="Today Report"
+              subtitle="Team daily summary"
+              icon="calendar-number-outline"
+              iconColor="#8B5CF6"
+              iconBg="#F3ECFF"
+              onPress={() => props.setScreen('todayAttendance')}
+            />
+
+            <ReportCard
+              title="Overall User Report"
+              subtitle="Team task overview"
+              icon="people-circle-outline"
+              iconColor="#4F46E5"
+              iconBg="#EEF0FF"
+              onPress={openManageUsersAssignments}
+            />
+          </View>
+        ) : null}
+
+        {/* <ActionButton
+          title="Today's Attendance"
+          onPress={() => props.setScreen('todayAttendance')}
+          variant="primary"
+        /> */}
 
         <SectionCard title="">
           <View style={styles.chartHighlightCard}>

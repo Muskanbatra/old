@@ -87,7 +87,7 @@ exports.getTodayReport = async (req, res) => {
     end.setHours(23, 59, 59, 999);
 
     const users = await Auth.find()
-      .select('_id')
+      .select('_id name email')
       .lean();
 
     const attendance = await Attendance.find({
@@ -100,8 +100,8 @@ exports.getTodayReport = async (req, res) => {
     const completedTasks = await Task.find({
       status: 'completed',
       completedAt: {
-        $exists: true,
-        $ne: null,
+        $gte: start,
+        $lte: end,
       },
     })
       .select('_id title assignedTo completedAt')
@@ -121,6 +121,7 @@ exports.getTodayReport = async (req, res) => {
     users.forEach(user => {
       usersMap[String(user._id)] = {
         userId: String(user._id),
+        userName: user.name || user.email || String(user._id),
         attendance: [],
         completedTasks: [],
         activeTasks: [],
@@ -187,4 +188,3 @@ exports.getTodayReport = async (req, res) => {
 
   }
 };
-

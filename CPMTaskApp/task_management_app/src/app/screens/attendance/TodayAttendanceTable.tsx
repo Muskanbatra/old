@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Modal, Pressable, ScrollView, Text, View } from 'react-native';
-import { SectionCard } from '../../components';
+import { ActionButton, GradientSurface } from '../../components';
 import { attendanceService } from '../../services/attendance.service';
 import { styles } from '../../theme/styles';
 
@@ -13,6 +13,17 @@ export default function TodayAttendanceTable({ getUserName }: Props) {
   const [selectedTasks, setSelectedTasks] = useState<any[]>([]);
   const [showTaskModal, setShowTaskModal] = useState(false);
   const [modalTitle, setModalTitle] = useState('');
+  const [activeTab, setActiveTab] = useState<'attendance' | 'tasks'>(
+    'attendance',
+  );
+
+  const attendanceTabs: Array<{
+    key: 'attendance' | 'tasks';
+    label: string;
+  }> = [
+    { key: 'attendance', label: 'Attendance' },
+    { key: 'tasks', label: 'Tasks' },
+  ];
 
   useEffect(() => {
     loadAttendance();
@@ -33,106 +44,185 @@ export default function TodayAttendanceTable({ getUserName }: Props) {
     }
   };
 
+  const formatTime = (value?: string | null) =>
+    value
+      ? new Date(value).toLocaleTimeString([], {
+          hour: '2-digit',
+          minute: '2-digit',
+        })
+      : '--';
+
+  const getRowUserName = (row: any) =>
+    row.userName || row.name || getUserName(row.userId);
+
   return (
-    <SectionCard title="Today's Attendance">
-      <View style={styles.managedTable}>
-        <View style={styles.managedTableHeader}>
-          <Text style={[styles.managedHeaderCell, styles.managedUserCell]}>
-            User
-          </Text>
-
-          <Text style={styles.managedHeaderCell}>In</Text>
-
-          <Text style={styles.managedHeaderCell}>Out</Text>
-
-          <Text style={styles.managedHeaderCell}>Hours</Text>
-
-          <Text style={styles.managedHeaderCell}>Completed</Text>
-
-          <Text style={styles.managedHeaderCell}>Active Task</Text>
-
-          <Text style={styles.managedHeaderCell}>Pending</Text>
+    <>
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={styles.myTasksTabScrollContent}
+      >
+        <View style={styles.myTasksTabRow}>
+          {attendanceTabs.map(tab => (
+            <Pressable
+              key={tab.key}
+              onPress={() => setActiveTab(tab.key)}
+              style={[
+                styles.myTasksTabButton,
+                activeTab === tab.key && styles.myTasksTabButtonActive,
+              ]}
+            >
+              {activeTab === tab.key ? (
+                <GradientSurface style={styles.myTasksTabGradient} />
+              ) : null}
+              <Text
+                style={[
+                  styles.myTasksTabText,
+                  activeTab === tab.key && styles.myTasksTabTextActive,
+                ]}
+              >
+                {tab.label}
+              </Text>
+            </Pressable>
+          ))}
         </View>
+      </ScrollView>
 
-        {attendanceRows.map((row: any) => (
-          <View key={row.userId} style={styles.managedTableRow}>
-            <View style={styles.managedUserCell}>
-              <Text style={styles.managedUserName}>
-                {getUserName(row.userId)}
-              </Text>
+      <View style={styles.attendanceTableWrap}>
+        {activeTab === 'attendance' ? (
+          <View style={styles.attendanceTable}>
+            <View style={styles.attendanceTableHeader}>
+              <View style={[styles.attendanceTableCell, styles.attendanceUserCell]}>
+                <Text style={styles.attendanceHeaderCell}>User</Text>
+              </View>
+
+              <View style={styles.attendanceTimeCell}>
+                <Text style={styles.attendanceHeaderCell}>In</Text>
+              </View>
+
+              <View style={styles.attendanceTimeCell}>
+                <Text style={styles.attendanceHeaderCell}>Out</Text>
+              </View>
+
+              <View style={styles.attendanceHoursCell}>
+                <Text style={styles.attendanceHeaderCell}>Hours</Text>
+              </View>
             </View>
 
-            <View style={styles.managedHeaderCell}>
-              {(row.attendance || []).map(
-                (item: any, index: number) => (
-                  <Text key={index}>
-                    {item.checkInTime
-                      ? new Date(item.checkInTime).toLocaleTimeString([], {
-                          hour: '2-digit',
-                          minute: '2-digit',
-                        })
-                      : '--'}
+            {attendanceRows.map((row: any) => (
+              <View key={row.userId} style={styles.attendanceTableRow}>
+                <View style={[styles.attendanceTableCell, styles.attendanceUserCell]}>
+                  <Text style={styles.managedUserName} numberOfLines={1}>
+                    {getRowUserName(row)}
                   </Text>
-                ),
-              )}
-            </View>
+                </View>
 
-            <View style={styles.managedHeaderCell}>
-              {(row.attendance || []).map(
-                (item: any, index: number) => (
-                  <Text key={index}>
-                    {item.checkOutTime
-                      ? new Date(item.checkOutTime).toLocaleTimeString([], {
-                          hour: '2-digit',
-                          minute: '2-digit',
-                        })
-                      : '--'}
+                <View style={styles.attendanceTimeCell}>
+                  {(row.attendance || []).length ? (
+                    (row.attendance || []).map((item: any, index: number) => (
+                      <Text key={index} style={styles.attendanceCellText}>
+                        {formatTime(item.checkInTime)}
+                      </Text>
+                    ))
+                  ) : (
+                    <Text style={styles.attendanceCellText}>--</Text>
+                  )}
+                </View>
+
+                <View style={styles.attendanceTimeCell}>
+                  {(row.attendance || []).length ? (
+                    (row.attendance || []).map((item: any, index: number) => (
+                      <Text key={index} style={styles.attendanceCellText}>
+                        {formatTime(item.checkOutTime)}
+                      </Text>
+                    ))
+                  ) : (
+                    <Text style={styles.attendanceCellText}>--</Text>
+                  )}
+                </View>
+
+                <View style={styles.attendanceHoursCell}>
+                  <Text style={styles.attendanceCellStrong}>
+                    {Number(row.totalHours || 0).toFixed(2)}
                   </Text>
-                ),
-              )}
-            </View>
-
-            <Text style={styles.managedHeaderCell}>
-              {Number(row.totalHours || 0).toFixed(2)}
-            </Text>
-
-            <Pressable
-              style={styles.managedHeaderCell}
-              onPress={() => {
-                setModalTitle('Completed Tasks');
-                setSelectedTasks(row.completedTasks || []);
-                setShowTaskModal(true);
-              }}
-            >
-              <Text style={{ fontWeight: '700' }}>
-                {(row.completedTasks || []).length}
-              </Text>
-            </Pressable>
-
-            <View style={styles.managedHeaderCell}>
-              {(row.activeTasks || []).length > 0 ? (
-                <Text numberOfLines={1}>
-                  {row.activeTasks[0]?.title}
-                </Text>
-              ) : (
-                <Text>-</Text>
-              )}
-            </View>
-
-            <Pressable
-              style={styles.managedHeaderCell}
-              onPress={() => {
-                setModalTitle('Pending Tasks');
-                setSelectedTasks(row.pendingTasks || []);
-                setShowTaskModal(true);
-              }}
-            >
-              <Text style={{ fontWeight: '700' }}>
-                {(row.pendingTasks || []).length}
-              </Text>
-            </Pressable>
+                </View>
+              </View>
+            ))}
           </View>
-        ))}
+        ) : (
+          <View style={styles.attendanceTable}>
+            <View style={styles.attendanceTableHeader}>
+              <View style={[styles.attendanceTableCell, styles.attendanceUserCell]}>
+                <Text style={styles.attendanceHeaderCell}>User</Text>
+              </View>
+
+              <View style={styles.attendanceCountCell}>
+                <Text style={styles.attendanceHeaderCell}>Done</Text>
+              </View>
+
+              <View style={styles.attendanceActiveTaskCell}>
+                <Text style={styles.attendanceHeaderCell}>Active</Text>
+              </View>
+
+              <View style={styles.attendanceCountCell}>
+                <Text style={styles.attendanceHeaderCell}>Pending</Text>
+              </View>
+            </View>
+
+            {attendanceRows.map((row: any) => (
+              <View key={row.userId} style={styles.attendanceTableRow}>
+                <View style={[styles.attendanceTableCell, styles.attendanceUserCell]}>
+                  <Text style={styles.managedUserName} numberOfLines={1}>
+                    {getRowUserName(row)}
+                  </Text>
+                </View>
+
+                <Pressable
+                  style={styles.attendanceCountCell}
+                  onPress={() => {
+                    setModalTitle('Completed Tasks');
+                    setSelectedTasks(row.completedTasks || []);
+                    setShowTaskModal(true);
+                  }}
+                >
+                  <View
+                    style={[styles.attendanceCountPill, styles.managedCountDone]}
+                  >
+                    <Text style={styles.managedCountText}>
+                      {(row.completedTasks || []).length}
+                    </Text>
+                  </View>
+                </Pressable>
+
+                <View style={styles.attendanceActiveTaskCell}>
+                  <Text style={styles.attendanceCellText} numberOfLines={1}>
+                    {row.activeTasks?.[0]?.title || '-'}
+                  </Text>
+                </View>
+
+                <Pressable
+                  style={styles.attendanceCountCell}
+                  onPress={() => {
+                    setModalTitle('Pending Tasks');
+                    setSelectedTasks(row.pendingTasks || []);
+                    setShowTaskModal(true);
+                  }}
+                >
+                  <View
+                    style={[
+                      styles.attendanceCountPill,
+                      styles.managedCountPending,
+                    ]}
+                  >
+                    <Text style={styles.managedCountText}>
+                      {(row.pendingTasks || []).length}
+                    </Text>
+                  </View>
+                </Pressable>
+              </View>
+            ))}
+          </View>
+        )}
       </View>
 
       <Modal
@@ -141,53 +231,32 @@ export default function TodayAttendanceTable({ getUserName }: Props) {
         animationType="fade"
         onRequestClose={() => setShowTaskModal(false)}
       >
-        <View
-          style={{
-            flex: 1,
-            justifyContent: 'center',
-            backgroundColor: 'rgba(0,0,0,0.4)',
-            padding: 20,
-          }}
-        >
-          <View
-            style={{
-              backgroundColor: '#fff',
-              borderRadius: 12,
-              padding: 20,
-              maxHeight: '70%',
-            }}
-          >
-            <Text
-              style={{
-                fontSize: 18,
-                fontWeight: '700',
-                marginBottom: 15,
-              }}
-            >
-              {modalTitle}
-            </Text>
+        <View style={styles.modalOverlayCenter}>
+          <View style={styles.pickerModalCard}>
+            <Text style={styles.modalTitle}>{modalTitle}</Text>
 
-            <ScrollView>
-              {selectedTasks.map((task: any) => (
-                <View key={task.id} style={{ marginBottom: 10 }}>
-                  <Text>• {task.title}</Text>
-                </View>
-              ))}
+            <ScrollView style={styles.attendanceTaskModalList}>
+              {selectedTasks.length ? (
+                selectedTasks.map((task: any) => (
+                  <View key={task.id} style={styles.attendanceTaskModalItem}>
+                    <Text style={styles.attendanceTaskModalText}>
+                      {task.title}
+                    </Text>
+                  </View>
+                ))
+              ) : (
+                <Text style={styles.managedCellText}>No tasks found</Text>
+              )}
             </ScrollView>
 
-            <Pressable onPress={() => setShowTaskModal(false)}>
-              <Text
-                style={{
-                  color: 'blue',
-                  marginTop: 15,
-                }}
-              >
-                Close
-              </Text>
-            </Pressable>
+            <ActionButton
+              title="Close"
+              onPress={() => setShowTaskModal(false)}
+              variant="secondary"
+            />
           </View>
         </View>
       </Modal>
-    </SectionCard>
+    </>
   );
 }

@@ -15,7 +15,8 @@ export type Screen =
   | 'reviewTask'
   | 'notifications'
   | 'myTasks'
-  | 'editTask';
+  | 'editTask'
+  | 'todayAttendance';
 
 export type DashboardTab = 'home' | 'tasks' | 'add' | 'profile';
 export type TaskTab = 'active' | 'incoming' | 'review' | 'complete';

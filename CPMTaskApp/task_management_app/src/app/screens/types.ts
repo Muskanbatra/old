@@ -46,6 +46,8 @@ export type UpdateUserInput = {
   role: string;
 };
 
+export type ManageUsersTab = 'add' | 'list' | 'assignments';
+
 export type ScreenRendererProps = {
   screen: Screen;
   progress: number;
@@ -107,6 +109,8 @@ export type ScreenRendererProps = {
   handleUpdateUser: (userId: string, user: UpdateUserInput) => Promise<boolean>;
   handleDeleteUser: (userId: string) => Promise<boolean>;
   openUserDetails: (userId: string) => void;
+  manageUsersInitialTab: ManageUsersTab;
+  openManageUsersAssignments: () => void;
   resetTaskForm: () => void;
   handleCreateTask: () => Promise<void>;
   handleEditSelectedTask: () => Promise<void>;
@@ -129,7 +133,11 @@ export type ScreenRendererProps = {
   setReviewComment: (value: string) => void;
   handleReturnForChanges: (taskId: string, comment: string) => Promise<void>;
   handleApproveTask: (taskId: string) => Promise<void>;
-  handleSubmitForReview: (taskId: string, comment?: string) => Promise<void>;
+  handleSubmitForReview: (
+    taskId: string,
+    comment?: string,
+    options?: { nextScreen?: Screen },
+  ) => Promise<void>;
   notifications: AppNotification[];
   markAllNotificationsRead: () => void;
   openNotification: (notification: AppNotification) => void;
