@@ -14,6 +14,7 @@ import {
   DashboardTab,
   formatDurationLabel,
   getTaskDurationMinutes,
+  getTaskElapsedSeconds,
   getTimerRemainingSeconds,
   INITIAL_TASKS,
   INITIAL_TIMERS,
@@ -1710,15 +1711,12 @@ export function useTaskManagementApp() {
 
     let actualTimeSpentSeconds = 0;
 
-    if (durationMinutes <= 0) {
-      const startedAt = currentTimer.startedAt;
-
-      if (startedAt) {
-        actualTimeSpentSeconds = Math.max(
-          0,
-          Math.floor((completionTime - new Date(startedAt).getTime()) / 1000),
-        );
-      }
+    if (durationMinutes <= 0 && task) {
+      actualTimeSpentSeconds = getTaskElapsedSeconds(
+        task,
+        currentTimer,
+        new Date(completionTime),
+      );
     } else {
       if (dueSeconds > remainingSeconds) {
         actualTimeSpentSeconds = dueSeconds - remainingSeconds;

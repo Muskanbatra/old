@@ -385,6 +385,10 @@ export function getTaskDueDateTime(task: Pick<Task, 'dueDate' | 'dueTime'>) {
     return null;
   }
 
+  if (!task.dueTime?.trim()) {
+    return null;
+  }
+
   const dueTime = normalizeDueTime(task.dueTime);
   const dueDateTime = new Date(`${task.dueDate}T${dueTime}:00`);
 
@@ -427,7 +431,12 @@ export function getTaskElapsedSeconds(
   task: Pick<Task, 'dueDate' | 'dueTime' | 'durationMinutes'>,
   timer?: Pick<
     TimerState,
-    'remaining' | 'isPaused' | 'lastResumedAt' | 'startedAt'
+    | 'remaining'
+    | 'isPaused'
+    | 'lastResumedAt'
+    | 'startedAt'
+    | 'pauseStartedAt'
+    | 'totalBreakSeconds'
   >,
   now = new Date(),
 ) {
@@ -445,9 +454,20 @@ export function getTaskElapsedSeconds(
       return 0;
     }
 
+    const storedBreakSeconds = Math.max(0, timer.totalBreakSeconds ?? 0);
+    const pauseStartedAt = timer.pauseStartedAt
+      ? new Date(timer.pauseStartedAt).getTime()
+      : NaN;
+    const currentPauseSeconds =
+      timer.isPaused && !Number.isNaN(pauseStartedAt)
+        ? Math.max(0, Math.floor((now.getTime() - pauseStartedAt) / 1000))
+        : 0;
+
     return Math.max(
       0,
-      Math.floor((now.getTime() - startedAt) / 1000),
+      Math.floor((now.getTime() - startedAt) / 1000) -
+        storedBreakSeconds -
+        currentPauseSeconds,
     );
   }
 
