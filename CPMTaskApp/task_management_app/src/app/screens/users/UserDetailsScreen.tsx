@@ -374,14 +374,14 @@ export function UserDetailsScreen(props: UserDetailsScreenProps) {
           <InfoRow label="Email" value={selectedUser.email} />
           <InfoRow label="Role" value={selectedUser.role} />
           {/* <InfoRow label="Total Tasks" value={String(userTasks.length)} /> */}
-          <View style={styles.userDetailsDownloadRow}>
+          {/* <View style={styles.userDetailsDownloadRow}>
             <Pressable
               onPress={downloadUserReport}
               style={styles.userDetailsDownloadButton}
             >
               <Text style={styles.userDetailsDownloadText}>Download PDF</Text>
             </Pressable>
-          </View>
+          </View> */}
         </SectionCard>
 
         <ScrollView

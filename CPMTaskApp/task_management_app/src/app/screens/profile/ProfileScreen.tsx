@@ -1,5 +1,5 @@
 import React from 'react';
-import { Pressable, ScrollView, Text, View } from 'react-native';
+import { Linking, Pressable, ScrollView, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import {
   BottomNav,
@@ -12,6 +12,8 @@ import { COLORS } from '../../domain/model';
 import { styles } from '../../theme/styles';
 import type { ScreenRendererProps } from '../types';
 
+const PRIVACY_POLICY_URL = 'https://cpm-store.com/privacy-policy';
+
 type ProfileScreenProps = Pick<
   ScreenRendererProps,
   | 'currentUser'
@@ -23,8 +25,14 @@ type ProfileScreenProps = Pick<
 >;
 
 export function ProfileScreen(props: ProfileScreenProps) {
-  const { currentUser, setScreen, goBack, profileStats, handleLogout, renderDashboardNavItem } =
-    props;
+  const {
+    currentUser,
+    setScreen,
+    goBack,
+    profileStats,
+    handleLogout,
+    renderDashboardNavItem,
+  } = props;
   const initials = currentUser?.name
     ?.split(' ')
     .map(part => part[0])
@@ -42,7 +50,9 @@ export function ProfileScreen(props: ProfileScreenProps) {
             <GradientSurface style={styles.profileAvatarGradient} />
             <Text style={styles.profileAvatarText}>{initials || 'AJ'}</Text>
           </View>
-          <Text style={styles.profileName}>{currentUser?.name ?? 'Alex Johnson'}</Text>
+          <Text style={styles.profileName}>
+            {currentUser?.name ?? 'Alex Johnson'}
+          </Text>
           <Text style={styles.profileEmail}>
             {currentUser?.email ?? 'alex@company.com'}
           </Text>
@@ -75,7 +85,10 @@ export function ProfileScreen(props: ProfileScreenProps) {
           />
         </View>
 
-        <Pressable onPress={() => setScreen('notifications')} style={styles.profileActionCard}>
+        <Pressable
+          onPress={() => setScreen('notifications')}
+          style={styles.profileActionCard}
+        >
           <View style={styles.profileActionLeft}>
             <NotificationBellIcon color={COLORS.indigo} size={20} />
             <Text style={styles.profileActionText}>Notifications</Text>
@@ -83,17 +96,31 @@ export function ProfileScreen(props: ProfileScreenProps) {
           <Text style={styles.profileActionArrow}>›</Text>
         </Pressable>
 
-   {currentUser?.role?.toLowerCase() === 'admin' && (
-  <Pressable
-    onPress={() => setScreen('manageUsers')}
-    style={styles.profileActionCard}>
-    <View style={styles.profileActionLeft}>
-      <Text style={styles.profileActionIcon}>◫</Text>
-      <Text style={styles.profileActionText}>Manage Users</Text>
-    </View>
-    <Text style={styles.profileActionArrow}>›</Text>
-  </Pressable>
-)}
+        {currentUser?.role?.toLowerCase() === 'admin' && (
+          <Pressable
+            onPress={() => setScreen('manageUsers')}
+            style={styles.profileActionCard}
+          >
+            <View style={styles.profileActionLeft}>
+              <Text style={styles.profileActionIcon}>◫</Text>
+              <Text style={styles.profileActionText}>Manage Users</Text>
+            </View>
+            <Text style={styles.profileActionArrow}>›</Text>
+          </Pressable>
+        )}
+
+        {currentUser?.role?.toLowerCase() === 'admin' && (
+          <Pressable
+            onPress={() => Linking.openURL(PRIVACY_POLICY_URL)}
+            style={styles.profileActionCard}
+          >
+            <View style={styles.profileActionLeft}>
+              <Text style={styles.profileActionIcon}>◫</Text>
+              <Text style={styles.profileActionText}>Privacy Policy</Text>
+            </View>
+            <Text style={styles.profileActionArrow}>›</Text>
+          </Pressable>
+        )}
 
         <Pressable onPress={handleLogout} style={styles.logoutCard}>
           <Text style={styles.logoutIcon}>⇥</Text>

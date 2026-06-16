@@ -37,6 +37,18 @@ type DashboardScreenProps = Pick<
 };
 
 const DATE_FILTER_DAYS = 7;
+const CHART_BAR_MAX_HEIGHT = 128;
+
+function getChartBarHeight(value: number, maxValue: number, minHeight: number) {
+  if (value <= 0) {
+    return minHeight;
+  }
+
+  return Math.max(
+    minHeight,
+    Math.round((value / Math.max(1, maxValue)) * CHART_BAR_MAX_HEIGHT),
+  );
+}
 
 function getDateKey(value?: string) {
   if (!value) {
@@ -249,6 +261,7 @@ export function DashboardScreen(props: DashboardScreenProps) {
   const [dateRange, setDateRange] = useState(getDefaultDateRange);
   const [showDateRangePicker, setShowDateRangePicker] = useState(false);
   const weeklyData = buildWeeklyPerformance(myTasks, dateRange);
+  const weeklyChartMax = Math.max(1, ...weeklyData.map(item => item.completed));
   const [selectedChartKey, setSelectedChartKey] = useState(
     weeklyData[weeklyData.length - 1]?.dateKey ?? '',
   );
@@ -351,27 +364,6 @@ export function DashboardScreen(props: DashboardScreenProps) {
                 <FilterIcon />
               </Pressable>
             </View>
-            <View style={styles.chartMetricChipRow}>
-              <View style={styles.legendChip}>
-                <View
-                  style={[styles.legendDot, { backgroundColor: COLORS.purple }]}
-                />
-                <Text style={styles.legendText}>
-                  Assigned: {selectedChartPoint.assigned}
-                </Text>
-              </View>
-              <View style={styles.legendChip}>
-                <View
-                  style={[
-                    styles.legendDot,
-                    { backgroundColor: COLORS.success },
-                  ]}
-                />
-                <Text style={styles.legendText}>
-                  Completed: {selectedChartPoint.completed}
-                </Text>
-              </View>
-            </View>
           </View>
           <View style={styles.analyticsStack}>
             <View style={styles.analyticsCardPrimary}>
@@ -401,14 +393,14 @@ export function DashboardScreen(props: DashboardScreenProps) {
                     <View style={styles.chartBarTrack}>
                       <View
                         style={[
-                          styles.chartBarAssigned,
-                          { height: Math.max(18, item.assigned * 10) },
-                        ]}
-                      />
-                      <View
-                        style={[
                           styles.chartBarCompleted,
-                          { height: Math.max(12, item.completed * 10) },
+                          {
+                            height: getChartBarHeight(
+                              item.completed,
+                              weeklyChartMax,
+                              12,
+                            ),
+                          },
                         ]}
                       />
                     </View>

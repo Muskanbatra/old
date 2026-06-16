@@ -487,8 +487,7 @@ export const styles = StyleSheet.create({
     paddingHorizontal: 16,
     gap: 14,
     marginTop: 10,
-        marginBottom: 5,
-
+    marginBottom: 5,
   },
   attendanceHeroIconWrap: {
     width: 46,
@@ -555,8 +554,12 @@ export const styles = StyleSheet.create({
     borderRadius: 9,
     backgroundColor: '#FF3347',
   },
-  statsGrid: { flexDirection: 'row', justifyContent: 'space-between', gap: 12,    marginTop: 10,
- },
+  statsGrid: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    gap: 12,
+    marginTop: 10,
+  },
   statCard: {
     width: '31%',
     borderRadius: 22,
@@ -771,18 +774,12 @@ export const styles = StyleSheet.create({
     height: 128,
     justifyContent: 'flex-end',
     alignItems: 'center',
-  },
-  chartBarAssigned: {
-    position: 'absolute',
-    bottom: 0,
-    width: 22,
-    borderRadius: 999,
-    backgroundColor: '#DDD6FE',
+    overflow: 'hidden',
   },
   chartBarCompleted: {
-    width: 14,
+    width: 18,
     borderRadius: 999,
-    backgroundColor: COLORS.success,
+    backgroundColor: '#A78BFA',
     bottom: 0,
   },
   chartLabel: { fontSize: 10, color: COLORS.textMuted, fontWeight: '600' },
