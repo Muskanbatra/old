@@ -656,7 +656,7 @@ export const styles = StyleSheet.create({
     letterSpacing: 3,
     marginBottom: 8,
   },
-  chartHighlightValue: { color: '#6D28D9', fontSize: 20, fontWeight: '800' },
+  chartHighlightValue: { color: COLORS.text, fontSize: 20, fontWeight: '800' },
   chartHighlightMeta: {
     color: COLORS.textMuted,
     fontSize: 13,
@@ -779,7 +779,7 @@ export const styles = StyleSheet.create({
   chartBarCompleted: {
     width: 18,
     borderRadius: 999,
-    backgroundColor: '#A78BFA',
+    backgroundColor: '#916dfd',
     bottom: 0,
   },
   chartLabel: { fontSize: 10, color: COLORS.textMuted, fontWeight: '600' },
