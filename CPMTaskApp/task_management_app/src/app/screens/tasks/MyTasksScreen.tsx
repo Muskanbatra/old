@@ -1,5 +1,12 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { Modal, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
+import {
+  Modal,
+  Pressable,
+  ScrollView,
+  Text,
+  TextInput,
+  View,
+} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import {
   ActionButton,
@@ -9,13 +16,24 @@ import {
   ScreenHeader,
   TaskCard,
 } from '../../components';
-import {
-  getTaskRemainingSeconds,
-} from '../../domain/model';
+import { getTaskRemainingSeconds, type Task } from '../../domain/model';
 import { styles } from '../../theme/styles';
 import type { ScreenRendererProps } from '../types';
 
 const TASKS_PER_PAGE = 10;
+
+const getLatestTaskTime = (
+  task: Task,
+  taskTab: MyTasksScreenProps['taskTab'],
+) => {
+  const dateValue =
+    taskTab === 'complete'
+      ? task.completedAt ?? task.updatedAt ?? task.createdAt
+      : task.updatedAt ?? task.createdAt;
+  const time = Date.parse(dateValue ?? '');
+
+  return Number.isFinite(time) ? time : 0;
+};
 
 type MyTasksScreenProps = Pick<
   ScreenRendererProps,
@@ -86,9 +104,17 @@ export function MyTasksScreen(props: MyTasksScreenProps) {
     { key: 'complete' as const, label: 'Complete' },
   ];
   const visibleTasks = currentTaskList();
+  const orderedTasks =
+    taskTab === 'review' || taskTab === 'complete'
+      ? [...visibleTasks].sort(
+          (left, right) =>
+            getLatestTaskTime(right, taskTab) -
+            getLatestTaskTime(left, taskTab),
+        )
+      : visibleTasks;
   const normalizedSearchQuery = taskSearchQuery.trim().toLowerCase();
   const filteredTasks = normalizedSearchQuery
-    ? visibleTasks.filter(task => {
+    ? orderedTasks.filter(task => {
         const searchableText = [
           task.title,
           task.description,
@@ -105,8 +131,11 @@ export function MyTasksScreen(props: MyTasksScreenProps) {
 
         return searchableText.includes(normalizedSearchQuery);
       })
-    : visibleTasks;
-  const totalTaskPages = Math.max(1, Math.ceil(filteredTasks.length / TASKS_PER_PAGE));
+    : orderedTasks;
+  const totalTaskPages = Math.max(
+    1,
+    Math.ceil(filteredTasks.length / TASKS_PER_PAGE),
+  );
   const currentTaskPage = Math.min(taskPage, totalTaskPages);
   const paginatedTasks = filteredTasks.slice(
     (currentTaskPage - 1) * TASKS_PER_PAGE,
@@ -191,7 +220,8 @@ export function MyTasksScreen(props: MyTasksScreenProps) {
       return;
     }
 
-    const reason = selectedReason === 'Other' ? customReason.trim() : selectedReason.trim();
+    const reason =
+      selectedReason === 'Other' ? customReason.trim() : selectedReason.trim();
 
     if (!reason) {
       setReasonError('Please select a reason.');
@@ -199,7 +229,9 @@ export function MyTasksScreen(props: MyTasksScreenProps) {
     }
 
     if (reasonModal.type === 'review') {
-      await handleSubmitForReview(reasonModal.taskId, reason);
+      await handleSubmitForReview(reasonModal.taskId, reason, {
+        nextScreen: 'myTasks',
+      });
     } else {
       await handleRejectTask(reasonModal.taskId, reason);
     }
@@ -247,7 +279,10 @@ export function MyTasksScreen(props: MyTasksScreenProps) {
       return;
     }
 
-    const minutes = moreTimeUnit === 'hr' ? Math.floor(timeValue * 60) : Math.floor(timeValue);
+    const minutes =
+      moreTimeUnit === 'hr'
+        ? Math.floor(timeValue * 60)
+        : Math.floor(timeValue);
 
     await handleAddMoreTime(timeoutTaskId, minutes, moreTimeReason);
     setTimeoutTaskId(null);
@@ -271,16 +306,13 @@ export function MyTasksScreen(props: MyTasksScreenProps) {
   return (
     <SafeAreaView style={styles.page}>
       <ScrollView contentContainerStyle={styles.formScroll}>
-        <ScreenHeader
-          title="My Tasks"
-          onBack={goBack}
-       
-        />
+        <ScreenHeader title="My Tasks" onBack={goBack} />
         <ScrollView
           horizontal
           style={styles.myTasksTabScroll}
           showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.myTasksTabScrollContent}>
+          contentContainerStyle={styles.myTasksTabScrollContent}
+        >
           <View style={styles.myTasksTabRow}>
             {myTaskTabs.map(tab => (
               <Pressable
@@ -289,7 +321,8 @@ export function MyTasksScreen(props: MyTasksScreenProps) {
                 style={[
                   styles.myTasksTabButton,
                   taskTab === tab.key && styles.myTasksTabButtonActive,
-                ]}>
+                ]}
+              >
                 {taskTab === tab.key ? (
                   <GradientSurface style={styles.myTasksTabGradient} />
                 ) : null}
@@ -297,7 +330,8 @@ export function MyTasksScreen(props: MyTasksScreenProps) {
                   style={[
                     styles.myTasksTabText,
                     taskTab === tab.key && styles.myTasksTabTextActive,
-                  ]}>
+                  ]}
+                >
                   {tab.label}
                 </Text>
               </Pressable>
@@ -313,7 +347,7 @@ export function MyTasksScreen(props: MyTasksScreenProps) {
           style={styles.taskListSearchInput}
           autoCapitalize="none"
         />
-    
+
         {isTasksLoading ? (
           <EmptyState
             title="Loading tasks"
@@ -363,19 +397,24 @@ export function MyTasksScreen(props: MyTasksScreenProps) {
                   style={[
                     styles.paginationButton,
                     currentTaskPage === 1 && styles.paginationButtonDisabled,
-                  ]}>
+                  ]}
+                >
                   <Text style={styles.paginationButtonText}>Previous</Text>
                 </Pressable>
                 <Text style={styles.paginationText}>
                   Page {currentTaskPage} of {totalTaskPages}
                 </Text>
                 <Pressable
-                  onPress={() => setTaskPage(prev => Math.min(totalTaskPages, prev + 1))}
+                  onPress={() =>
+                    setTaskPage(prev => Math.min(totalTaskPages, prev + 1))
+                  }
                   disabled={currentTaskPage === totalTaskPages}
                   style={[
                     styles.paginationButton,
-                    currentTaskPage === totalTaskPages && styles.paginationButtonDisabled,
-                  ]}>
+                    currentTaskPage === totalTaskPages &&
+                      styles.paginationButtonDisabled,
+                  ]}
+                >
                   <Text style={styles.paginationButtonText}>Next</Text>
                 </Pressable>
               </View>
@@ -383,7 +422,9 @@ export function MyTasksScreen(props: MyTasksScreenProps) {
           </>
         ) : (
           <EmptyState
-            title={taskSearchQuery.trim() ? 'No matching tasks' : 'No tasks yet'}
+            title={
+              taskSearchQuery.trim() ? 'No matching tasks' : 'No tasks yet'
+            }
             subtitle={
               taskSearchQuery.trim()
                 ? 'Try a different search term.'
@@ -391,11 +432,12 @@ export function MyTasksScreen(props: MyTasksScreenProps) {
             }
           />
         )}
-        {taskActionError ? <Text style={styles.formErrorText}>{taskActionError}</Text> : null}
-            <Text style={styles.taskListMetaText}>
+        {taskActionError ? (
+          <Text style={styles.formErrorText}>{taskActionError}</Text>
+        ) : null}
+        <Text style={styles.taskListMetaText}>
           Showing {paginatedTasks.length} of {filteredTasks.length} tasks
         </Text>
-
       </ScrollView>
 
       <BottomNav activeTab="tasks" renderItem={renderDashboardNavItem} />
@@ -404,8 +446,12 @@ export function MyTasksScreen(props: MyTasksScreenProps) {
         animationType="fade"
         transparent
         visible={!!confirmModal}
-        onRequestClose={closeConfirmModal}>
-        <Pressable style={styles.modalOverlayCenter} onPress={closeConfirmModal}>
+        onRequestClose={closeConfirmModal}
+      >
+        <Pressable
+          style={styles.modalOverlayCenter}
+          onPress={closeConfirmModal}
+        >
           <Pressable style={styles.pickerModalCard} onPress={() => {}}>
             <Text style={styles.modalTitle}>{confirmModal?.title}</Text>
             <Text style={styles.modalText}>{confirmModal?.message}</Text>
@@ -431,11 +477,14 @@ export function MyTasksScreen(props: MyTasksScreenProps) {
         animationType="fade"
         transparent
         visible={!!reasonModal}
-        onRequestClose={closeReasonModal}>
+        onRequestClose={closeReasonModal}
+      >
         <Pressable style={styles.modalOverlayCenter} onPress={closeReasonModal}>
           <Pressable style={styles.pickerModalCard} onPress={() => {}}>
             <Text style={styles.modalTitle}>
-              {reasonModal?.type === 'review' ? 'Send For Review' : 'Reject Task'}
+              {reasonModal?.type === 'review'
+                ? 'Send For Review'
+                : 'Reject Task'}
             </Text>
             <Text style={styles.modalText}>
               {reasonModal?.type === 'review'
@@ -445,7 +494,8 @@ export function MyTasksScreen(props: MyTasksScreenProps) {
 
             <Pressable
               onPress={() => setShowReasonPicker(prev => !prev)}
-              style={styles.selectField}>
+              style={styles.selectField}
+            >
               <Text style={styles.selectFieldText}>
                 {selectedReason || 'Select reason'}
               </Text>
@@ -454,7 +504,10 @@ export function MyTasksScreen(props: MyTasksScreenProps) {
 
             {showReasonPicker ? (
               <View style={styles.assignDropdownWrap}>
-                {(reasonModal?.type === 'review' ? reviewReasons : rejectReasons).map(reason => (
+                {(reasonModal?.type === 'review'
+                  ? reviewReasons
+                  : rejectReasons
+                ).map(reason => (
                   <Pressable
                     key={reason}
                     onPress={() => {
@@ -464,8 +517,10 @@ export function MyTasksScreen(props: MyTasksScreenProps) {
                     }}
                     style={[
                       styles.assignDropdownItem,
-                      selectedReason === reason && styles.assignDropdownItemActive,
-                    ]}>
+                      selectedReason === reason &&
+                        styles.assignDropdownItemActive,
+                    ]}
+                  >
                     {selectedReason === reason ? (
                       <GradientSurface style={styles.assignDropdownGradient} />
                     ) : null}
@@ -473,8 +528,10 @@ export function MyTasksScreen(props: MyTasksScreenProps) {
                       <Text
                         style={[
                           styles.assignDropdownName,
-                          selectedReason === reason && styles.assignDropdownNameActive,
-                        ]}>
+                          selectedReason === reason &&
+                            styles.assignDropdownNameActive,
+                        ]}
+                      >
                         {reason}
                       </Text>
                     </View>
@@ -519,112 +576,110 @@ export function MyTasksScreen(props: MyTasksScreenProps) {
         </Pressable>
       </Modal>
 
-    <Modal
-  animationType="fade"
-  transparent
-  visible={!!timeoutTaskId && showMoreTimeInput}
-  onRequestClose={() => setShowMoreTimeInput(false)}
->
-  <Pressable
-    style={styles.modalOverlayCenter}
-    onPress={() => setShowMoreTimeInput(false)}
-  >
-    <Pressable style={styles.pickerModalCard} onPress={() => {}}>
-      <Text style={styles.modalTitle}>Add Extra Time</Text>
-      <Text style={styles.modalText}>
-        Enter more time and start timer again.
-      </Text>
-
-    <View style={styles.rowGap}>
-  <View style={styles.flexOne}>
-    <TextInput
-      value={customMoreTime}
-      onChangeText={setCustomMoreTime}
-      placeholder="Enter time"
-      placeholderTextColor="#94A3B8"
-      keyboardType="number-pad"
-      style={styles.inputNoMargin}
-    />
-  </View>
-
-  <View style={styles.durationTabContainer}>
-    {(['min', 'hr'] as const).map(unit => {
-      const active = moreTimeUnit === unit;
-
-      return (
+      <Modal
+        animationType="fade"
+        transparent
+        visible={!!timeoutTaskId && showMoreTimeInput}
+        onRequestClose={() => setShowMoreTimeInput(false)}
+      >
         <Pressable
-          key={unit}
-          onPress={() => setMoreTimeUnit(unit)}
-          style={[
-            styles.durationTab,
-            active && styles.durationTabActive,
-          ]}
-        >
-          {active ? (
-            <GradientSurface
-              style={styles.durationTabGradient}
-            />
-          ) : null}
-
-          <Text
-            style={[
-              styles.durationTabText,
-              active && styles.durationTabTextActive,
-            ]}
-          >
-            {unit.toUpperCase()}
-          </Text>
-        </Pressable>
-      );
-    })}
-  </View>
-</View>
-
- 
-
-      <TextInput
-        value={moreTimeReason}
-        onChangeText={value => {
-          setMoreTimeReason(value);
-          setMoreTimeError('');
-        }}
-        placeholder="Reason for extra time"
-        placeholderTextColor="#94A3B8"
-        style={[styles.inputNoMargin, styles.textArea]}
-        multiline
-      />
-
-      {moreTimeError ? (
-        <Text style={styles.inlineFieldError}>
-          {moreTimeError}
-        </Text>
-      ) : null}
-
-      <View style={styles.rowGap}>
-        <ActionButton
-          title="Back"
+          style={styles.modalOverlayCenter}
           onPress={() => setShowMoreTimeInput(false)}
-          variant="secondary"
-          narrow
-        />
+        >
+          <Pressable style={styles.pickerModalCard} onPress={() => {}}>
+            <Text style={styles.modalTitle}>Add Extra Time</Text>
+            <Text style={styles.modalText}>
+              Enter more time and start timer again.
+            </Text>
 
-        <ActionButton
-          title="Start"
-          onPress={handleTimeoutMoreTime}
-          variant="primary"
-          narrow
-        />
-      </View>
-    </Pressable>
-  </Pressable>
-</Modal>
+            <View style={styles.rowGap}>
+              <View style={styles.flexOne}>
+                <TextInput
+                  value={customMoreTime}
+                  onChangeText={setCustomMoreTime}
+                  placeholder="Enter time"
+                  placeholderTextColor="#94A3B8"
+                  keyboardType="number-pad"
+                  style={styles.inputNoMargin}
+                />
+              </View>
+
+              <View style={styles.durationTabContainer}>
+                {(['min', 'hr'] as const).map(unit => {
+                  const active = moreTimeUnit === unit;
+
+                  return (
+                    <Pressable
+                      key={unit}
+                      onPress={() => setMoreTimeUnit(unit)}
+                      style={[
+                        styles.durationTab,
+                        active && styles.durationTabActive,
+                      ]}
+                    >
+                      {active ? (
+                        <GradientSurface style={styles.durationTabGradient} />
+                      ) : null}
+
+                      <Text
+                        style={[
+                          styles.durationTabText,
+                          active && styles.durationTabTextActive,
+                        ]}
+                      >
+                        {unit.toUpperCase()}
+                      </Text>
+                    </Pressable>
+                  );
+                })}
+              </View>
+            </View>
+
+            <TextInput
+              value={moreTimeReason}
+              onChangeText={value => {
+                setMoreTimeReason(value);
+                setMoreTimeError('');
+              }}
+              placeholder="Reason for extra time"
+              placeholderTextColor="#94A3B8"
+              style={[styles.inputNoMargin, styles.textArea]}
+              multiline
+            />
+
+            {moreTimeError ? (
+              <Text style={styles.inlineFieldError}>{moreTimeError}</Text>
+            ) : null}
+
+            <View style={styles.rowGap}>
+              <ActionButton
+                title="Back"
+                onPress={() => setShowMoreTimeInput(false)}
+                variant="secondary"
+                narrow
+              />
+
+              <ActionButton
+                title="Start"
+                onPress={handleTimeoutMoreTime}
+                variant="primary"
+                narrow
+              />
+            </View>
+          </Pressable>
+        </Pressable>
+      </Modal>
 
       <Modal
         animationType="fade"
         transparent
         visible={!!timeoutTaskId && !showMoreTimeInput}
-        onRequestClose={() => setTimeoutTaskId(null)}>
-        <Pressable style={styles.modalOverlayCenter} onPress={() => setTimeoutTaskId(null)}>
+        onRequestClose={() => setTimeoutTaskId(null)}
+      >
+        <Pressable
+          style={styles.modalOverlayCenter}
+          onPress={() => setTimeoutTaskId(null)}
+        >
           <Pressable style={styles.pickerModalCard} onPress={() => {}}>
             <Text style={styles.modalTitle}>Time Complete</Text>
             <Text style={styles.modalText}>Is task done?</Text>

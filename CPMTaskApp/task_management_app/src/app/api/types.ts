@@ -21,6 +21,7 @@ export type BackendTask = {
   assignedTo: BackendTaskUser;
   assignedBy: BackendTaskUser;
   createdAt: string;
+  updatedAt?: string;
   accepted?: boolean;
   reviewComment?: string;
   feedback?: string;

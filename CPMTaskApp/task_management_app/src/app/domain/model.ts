@@ -50,6 +50,7 @@ export type Task = {
   assignedTo: string;
   assignedBy: string;
   createdAt: string;
+  updatedAt?: string;
   accepted?: boolean;
   reviewComment?: string;
   feedback?: string;
@@ -400,15 +401,15 @@ export function getTaskRemainingSeconds(
   timer?: Pick<TimerState, 'remaining' | 'isPaused' | 'lastResumedAt'>,
   now = new Date(),
 ) {
-if (timer) {
-  const durationMinutes = getTaskDurationMinutes(task);
+  if (timer) {
+    const durationMinutes = getTaskDurationMinutes(task);
 
-  if (durationMinutes <= 0) {
-    return Number.MAX_SAFE_INTEGER;
+    if (durationMinutes <= 0) {
+      return Number.MAX_SAFE_INTEGER;
+    }
+
+    return getTimerRemainingSeconds(timer, now.getTime());
   }
-
-  return getTimerRemainingSeconds(timer, now.getTime());
-}
   const durationMinutes = getTaskDurationMinutes(task);
 
   if (durationMinutes > 0) {
@@ -473,11 +474,7 @@ export function getTaskElapsedSeconds(
 
   const totalSeconds = durationMinutes * 60;
 
-  const remainingSeconds = getTaskRemainingSeconds(
-    task,
-    timer,
-    now,
-  );
+  const remainingSeconds = getTaskRemainingSeconds(task, timer, now);
 
   return Math.max(0, totalSeconds - remainingSeconds);
 }

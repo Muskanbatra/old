@@ -463,7 +463,7 @@ export function TaskCard({
 
       <View style={styles.taskMetaRow}>
         <MetaPill icon="◷" text={`Due: ${formatTaskDueDateTime(task)}`} />
-        {task.status === 'under_review' || task.status === 'completed' ? (
+        {task.status === 'completed' ? (
           <MetaPill
             icon="◴"
             text={`Assigned Time: ${getTaskDurationLabel(task) || '--:--'}`}
@@ -479,10 +479,10 @@ export function TaskCard({
             <Text style={styles.inlineTimerIconText}>◴</Text>
           </View>
           <View style={styles.flexOne}>
-          <Text style={styles.inlineTimerLabel}>Time Elapsed</Text>
-<Text style={styles.inlineTimerValue}>
-  {formatTime(elapsedTime)}
-</Text>
+            <Text style={styles.inlineTimerLabel}>Time Elapsed</Text>
+            <Text style={styles.inlineTimerValue}>
+              {formatTime(elapsedTime)}
+            </Text>
           </View>
           <Text style={styles.inlineTimerState}>
             {isPaused ? 'Paused' : 'Running'}
@@ -493,11 +493,14 @@ export function TaskCard({
       {task.status === 'in_progress' && pauseHistory.length ? (
         <View style={styles.taskNoteCard}>
           <Text style={styles.taskNoteTitle}>Pause History</Text>
-          {pauseHistory.map((entry, index) => (
-            <Text key={`${entry}-${index}`} style={styles.taskNoteText}>
-              {entry}
-            </Text>
-          ))}
+          <View style={styles.pauseHistoryTextWrap}>
+            {pauseHistory.map((entry, index) => (
+              <Text key={`${entry}-${index}`} style={styles.taskNoteText}>
+                {entry}
+                {index < pauseHistory.length - 1 ? ',' : ''}
+              </Text>
+            ))}
+          </View>
         </View>
       ) : null}
 
@@ -512,11 +515,16 @@ export function TaskCard({
         </View>
       ) : null}
 
-      {task.status === 'under_review' ? (
+      {task.status === 'under_review' || task.status === 'rejected' ? (
         <View style={styles.reviewCommentCard}>
-          <Text style={styles.reviewCommentLabel}>Review Comment</Text>
+          <Text style={styles.reviewCommentLabel}>
+            {task.status === 'rejected' ? 'Reject Reason' : 'Review Comment'}
+          </Text>
           <Text style={styles.reviewCommentText}>
-            {task.reviewComment?.trim() || 'No review comment added.'}
+            {task.reviewComment?.trim() ||
+              (task.status === 'rejected'
+                ? 'No reject reason added.'
+                : 'No review comment added.')}
           </Text>
         </View>
       ) : null}
@@ -529,7 +537,17 @@ export function TaskCard({
               setShowPauseHistory(true);
             }}
           >
+            <View style={styles.rowGap}>
             <MetaPill icon="◷" text={`Pauses History • View`} />
+                  <MetaPill
+            icon="⏱"
+            text={`Time Spent: ${
+              task.actualTimeSpentSeconds
+                ? formatTime(task.actualTimeSpentSeconds)
+                : '00:00'
+            }`}
+          />
+            </View>
             <Modal
               animationType="fade"
               transparent
@@ -544,16 +562,19 @@ export function TaskCard({
                   <Text style={styles.modalTitle}>Pause History</Text>
 
                   {selectedPauseHistory.length ? (
-                    selectedPauseHistory.map((entry, index) => (
-                      <Text
-                        key={`${entry}-${index}`}
-                        style={styles.doneSummaryText}
-                      >
-                        {entry}
-                      </Text>
-                    ))
+                    <View style={styles.pauseHistoryTextWrap}>
+                      {selectedPauseHistory.map((entry, index) => (
+                        <Text
+                          key={`${entry}-${index}`}
+                          style={styles.taskNoteText}
+                        >
+                          {entry}
+                          {index < selectedPauseHistory.length - 1 ? ',' : ''}
+                        </Text>
+                      ))}
+                    </View>
                   ) : (
-                    <Text style={styles.doneSummaryText}>No pauses taken</Text>
+                    <Text style={styles.taskNoteText}>No pauses taken</Text>
                   )}
 
                   <ActionButton
@@ -577,14 +598,7 @@ export function TaskCard({
               totalBreakSeconds,
             )}`}
           /> */}
-          <MetaPill
-            icon="⏱"
-            text={`Time Spent: ${
-              task.actualTimeSpentSeconds
-                ? formatTime(task.actualTimeSpentSeconds)
-                : '00:00'
-            }`}
-          />
+    
 
           <MetaPill
             icon="📅"

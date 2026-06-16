@@ -325,6 +325,7 @@ export function useTaskManagementApp() {
       assignedTo: assignedToId,
       assignedBy: assignedById,
       createdAt: backendTask.createdAt,
+      updatedAt: backendTask.updatedAt,
       accepted: backendTask.accepted,
       reviewComment: backendTask.reviewComment,
       feedback: backendTask.feedback,
@@ -1609,29 +1610,26 @@ export function useTaskManagementApp() {
           ];
         }),
       ),
- [taskId]: {
-  ...(prev[taskId] ??
-    createTimerState(durationMinutes, {
-      startedAt: getIsoNow(),
+      [taskId]: {
+        ...(prev[taskId] ??
+          createTimerState(durationMinutes, {
+            startedAt: getIsoNow(),
 
-      // allow unlimited timer
-      remaining:
-        durationMinutes != null &&
-        durationMinutes > 0
-          ? durationMinutes * 60
-          : undefined,
-    })),
+            // allow unlimited timer
+            remaining:
+              durationMinutes != null && durationMinutes > 0
+                ? durationMinutes * 60
+                : undefined,
+          })),
 
-  isPaused: false,
+        isPaused: false,
 
-  startedAt:
-    prev[taskId]?.startedAt ??
-    getIsoNow(),
+        startedAt: prev[taskId]?.startedAt ?? getIsoNow(),
 
-  lastResumedAt: getIsoNow(),
+        lastResumedAt: getIsoNow(),
 
-  pauseStartedAt: undefined,
-},
+        pauseStartedAt: undefined,
+      },
     }));
     setTasks(prev =>
       prev.map(task => {
@@ -2509,7 +2507,7 @@ export function useTaskManagementApp() {
     },
     {
       label: 'Review',
-      value: assignedByMe.filter(
+      value: myTasks.filter(
         task => task.status === 'under_review' || task.status === 'rejected',
       ).length,
     },
@@ -2526,7 +2524,7 @@ export function useTaskManagementApp() {
   const profileStats = {
     total: myTasks.length,
     completed: myTasks.filter(task => task.status === 'completed').length,
-    review: assignedByMe.filter(
+    review: myTasks.filter(
       task => task.status === 'under_review' || task.status === 'rejected',
     ).length,
     pending: myTasks.filter(task => task.status === 'pending').length,

@@ -441,7 +441,7 @@ export const styles = StyleSheet.create({
     overflow: 'hidden',
     borderRadius: 22,
     padding: 18,
-    minHeight: 210,
+    // minHeight: 210,
     backgroundColor: COLORS.indigo,
 
     shadowColor: '#000',
@@ -487,7 +487,8 @@ export const styles = StyleSheet.create({
     paddingHorizontal: 16,
     gap: 14,
     marginTop: 10,
-    marginBottom: 15,
+        marginBottom: 5,
+
   },
   attendanceHeroIconWrap: {
     width: 46,
@@ -554,7 +555,8 @@ export const styles = StyleSheet.create({
     borderRadius: 9,
     backgroundColor: '#FF3347',
   },
-  statsGrid: { flexDirection: 'row', justifyContent: 'space-between', gap: 12 },
+  statsGrid: { flexDirection: 'row', justifyContent: 'space-between', gap: 12,    marginTop: 10,
+ },
   statCard: {
     width: '31%',
     borderRadius: 22,
@@ -658,12 +660,12 @@ export const styles = StyleSheet.create({
     fontWeight: '700',
     marginTop: 6,
   },
-chartMetricChipRow: {
-  flexDirection: 'row',
-  flexWrap: 'wrap',
-  gap: 8,
-},
-  
+  chartMetricChipRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+
   dashboardPerformanceSummary: {
     flexDirection: 'row',
     gap: 10,
@@ -715,7 +717,7 @@ chartMetricChipRow: {
     // borderColor: '#E0E7FF',
     backgroundColor: '#F8FAFF',
     paddingHorizontal: 16,
-    paddingBottom:16,
+    paddingBottom: 16,
   },
   analyticsCardSecondary: {
     borderRadius: 24,
@@ -1023,7 +1025,7 @@ chartMetricChipRow: {
     borderRadius: 18,
     borderWidth: 1,
     padding: 12,
-     backgroundColor: 'rgba(255,255,255,0.10)',
+    backgroundColor: 'rgba(255,255,255,0.10)',
     borderColor: 'rgba(255,255,255,0.12)',
   },
   attendanceStatusCardPending: {
@@ -1060,7 +1062,7 @@ chartMetricChipRow: {
     minWidth: 0,
   },
   attendanceStatusTitle: {
-    color:  '#FFFFFF',
+    color: '#FFFFFF',
     fontSize: 15,
     fontWeight: '800',
   },
@@ -1344,6 +1346,11 @@ chartMetricChipRow: {
   },
   taskNoteTitle: { color: COLORS.text, fontSize: 13, fontWeight: '800' },
   taskNoteText: { color: COLORS.textMuted, fontSize: 13, lineHeight: 18 },
+  pauseHistoryTextWrap: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 4,
+  },
   taskInputWrap: { width: '100%' },
   taskInlineInput: {
     minHeight: 88,

@@ -158,7 +158,10 @@ export function DashboardScreen(props: DashboardScreenProps) {
       task.assignedBy === currentUser?.backendId,
   );
   const incomingTasks = myTasks.filter(task => task.status === 'pending');
-  const reviewTasks = assignedByMe.filter(
+  const myReviewTasks = myTasks.filter(
+    task => task.status === 'under_review' || task.status === 'rejected',
+  );
+  const managedReviewTasks = assignedByMe.filter(
     task => task.status === 'under_review' || task.status === 'rejected',
   );
   const completedTasks = myTasks.filter(task => task.status === 'completed');
@@ -169,7 +172,7 @@ export function DashboardScreen(props: DashboardScreenProps) {
     incomingTasks.length;
   const reviewCount =
     homeStats.find(item => item.label.toLowerCase() === 'review')?.value ??
-    reviewTasks.length;
+    myReviewTasks.length;
   const doneCount =
     homeStats.find(item => item.label.toLowerCase() === 'done')?.value ??
     completedTasks.length;
@@ -192,7 +195,7 @@ export function DashboardScreen(props: DashboardScreenProps) {
     },
     {
       label: 'Review',
-      value: reviewTasks.length,
+      value: managedReviewTasks.length,
       description: 'Tasks returned for review, approval, or edits.',
       style: styles.overviewCardReview,
       accent: styles.overviewAccentReview,

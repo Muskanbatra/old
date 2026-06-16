@@ -473,23 +473,27 @@ export function ManageTaskScreen(props: ManageTaskScreenProps) {
           </View>
 
           <View style={styles.manageSummaryCard}>
-            <Pressable
-              onPress={() => {
-                setSelectedPauseHistory(task.pauseHistory || []);
-                setShowPauseHistory(true);
-              }}
-            >
-              <MetaPill icon="◷" text={`Pauses taken: ${pauseCount} • View`} />
-            </Pressable>
-
-            <MetaPill
-              icon="⏱"
-              text={`Time Spent: ${
-                task.actualTimeSpentSeconds
-                  ? formatTime(task.actualTimeSpentSeconds)
-                  : '00:00:00'
-              }`}
-            />
+            <View style={styles.rowGap}>
+              <Pressable
+                onPress={() => {
+                  setSelectedPauseHistory(task.pauseHistory || []);
+                  setShowPauseHistory(true);
+                }}
+              >
+                <MetaPill
+                  icon="◷"
+                  text={`Pauses taken: ${pauseCount} • View`}
+                />
+              </Pressable>
+              <MetaPill
+                icon="⏱"
+                text={`Time Spent: ${
+                  task.actualTimeSpentSeconds
+                    ? formatTime(task.actualTimeSpentSeconds)
+                    : '00:00:00'
+                }`}
+              />
+            </View>
 
             {/* <MetaPill
               icon="◷"
@@ -538,7 +542,12 @@ export function ManageTaskScreen(props: ManageTaskScreenProps) {
               icon="◌"
               text={`Assigned to: ${getUserName(task.assignedTo)}`}
             />
-            <MetaPill icon="◷" text={`Due: ${task.dueDate}, ${task.dueTime}`} />
+            <MetaPill
+              icon="◷"
+              text={`Due: ${task.dueDate}${
+                task.dueTime ? ` , ${task.dueTime}` : ''
+              }`}
+            />
           </View>
 
           <View style={styles.reviewCommentCard}>
@@ -919,12 +928,12 @@ export function ManageTaskScreen(props: ManageTaskScreenProps) {
 
             {selectedPauseHistory.length ? (
               selectedPauseHistory.map((item, index) => (
-                <Text key={`${item}-${index}`} style={styles.modalText}>
+                <Text key={`${item}-${index}`} style={styles.taskNoteText}>
                   • {item}
                 </Text>
               ))
             ) : (
-              <Text style={styles.modalText}>No pause history</Text>
+              <Text style={styles.taskNoteText}>No pause history</Text>
             )}
 
             <Pressable
