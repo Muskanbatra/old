@@ -100,8 +100,8 @@ exports.getTodayReport = async (req, res) => {
     const completedTasks = await Task.find({
       status: 'completed',
       completedAt: {
-        $gte: start,
-        $lte: end,
+        $gte: start.toISOString(),
+        $lte: end.toISOString(),
       },
     })
       .select('_id title assignedTo completedAt')
@@ -110,11 +110,15 @@ exports.getTodayReport = async (req, res) => {
 
     const activeTasks = await Task.find({
       status: 'in_progress',
-    }).lean();
+    })
+      .select('_id title assignedTo')
+      .lean();
 
     const pendingTasks = await Task.find({
       status: 'pending',
-    }).lean();
+    })
+      .select('_id title assignedTo')
+      .lean();
 
     const usersMap = {};
 

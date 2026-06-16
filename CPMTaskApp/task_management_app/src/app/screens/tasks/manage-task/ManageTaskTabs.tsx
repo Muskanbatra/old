@@ -6,7 +6,7 @@ import { styles } from '../../../theme/styles';
 
 const manageTabs = [
   { key: 'create' as ManageTab, label: 'Create Task' },
-  { key: 'created' as ManageTab, label: 'Task Created' },
+  { key: 'created' as ManageTab, label: 'Task Created Pending' },
   { key: 'review' as ManageTab, label: 'Task Review' },
 
   { key: 'done' as ManageTab, label: 'Done Task' },

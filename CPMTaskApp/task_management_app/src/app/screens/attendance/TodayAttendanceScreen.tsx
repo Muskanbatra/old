@@ -19,7 +19,7 @@ export function TodayAttendanceScreen({
         contentContainerStyle={styles.formScroll}
         showsVerticalScrollIndicator={false}
       >
-        <ScreenHeader title="Today's Attendance" onBack={goBack} />
+        <ScreenHeader title="Today's Report" onBack={goBack} />
         <TodayAttendanceTable getUserName={getUserName} />
       </ScrollView>
     </SafeAreaView>
