@@ -467,9 +467,9 @@ export const styles = StyleSheet.create({
   },
   heroGreeting: {
     color: '#FFFFFF',
-    fontSize: 30,
+    fontSize: 28,
     fontWeight: '800',
-    // marginBottom: 6,
+    marginTop: 2,
   },
   heroSubtext: {
     color: '#E0E7FF',

@@ -50,6 +50,7 @@ function formatAttendanceTime(value?: string | Date | null) {
     minute: '2-digit',
   });
 }
+const BYPASS_LOCATION_CHECK = true;
 
 export default function AttendanceScreen({ userId }: AttendanceScreenProps) {
   const [checkedIn, setCheckedIn] = useState(false);
@@ -115,7 +116,7 @@ export default function AttendanceScreen({ userId }: AttendanceScreenProps) {
         OFFICE_LOCATION.longitude,
       );
 
-      if (distance > OFFICE_LOCATION.allowedRadius) {
+      if (!BYPASS_LOCATION_CHECK && distance > OFFICE_LOCATION.allowedRadius) {
         Alert.alert('Outside office area');
 
         return;
