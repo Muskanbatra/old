@@ -15,6 +15,9 @@ type TaskModalState = {
   accent: 'active' | 'pending' | 'done';
 };
 
+const isAdminAttendanceRow = (row: any) =>
+  String(row.role || row.userRole || '').toLowerCase() === 'admin';
+
 export default function TodayAttendanceTable({ getUserName }: Props) {
   const [attendanceRows, setAttendanceRows] = useState<any[]>([]);
   const [taskModal, setTaskModal] = useState<TaskModalState | null>(null);
@@ -26,9 +29,12 @@ export default function TodayAttendanceTable({ getUserName }: Props) {
     key: 'attendance' | 'tasks';
     label: string;
   }> = [
-    { key: 'attendance', label: 'Today\'s Attendance' },
-    { key: 'tasks', label: 'Today\'s Tasks' },
+    { key: 'attendance', label: "Today's Attendance" },
+    { key: 'tasks', label: "Today's Tasks" },
   ];
+  const visibleAttendanceRows = attendanceRows.filter(
+    row => !isAdminAttendanceRow(row),
+  );
 
   useEffect(() => {
     loadAttendance();
@@ -140,7 +146,9 @@ export default function TodayAttendanceTable({ getUserName }: Props) {
         {activeTab === 'attendance' ? (
           <View style={styles.attendanceTable}>
             <View style={styles.attendanceTableHeader}>
-              <View style={[styles.attendanceTableCell, styles.attendanceUserCell]}>
+              <View
+                style={[styles.attendanceTableCell, styles.attendanceUserCell]}
+              >
                 <Text style={styles.attendanceHeaderCell}>User</Text>
               </View>
 
@@ -157,9 +165,14 @@ export default function TodayAttendanceTable({ getUserName }: Props) {
               </View>
             </View>
 
-            {attendanceRows.map((row: any) => (
+            {visibleAttendanceRows.map((row: any) => (
               <View key={row.userId} style={styles.attendanceTableRow}>
-                <View style={[styles.attendanceTableCell, styles.attendanceUserCell]}>
+                <View
+                  style={[
+                    styles.attendanceTableCell,
+                    styles.attendanceUserCell,
+                  ]}
+                >
                   <Text style={styles.managedUserName} numberOfLines={1}>
                     {getRowUserName(row)}
                   </Text>
@@ -200,7 +213,9 @@ export default function TodayAttendanceTable({ getUserName }: Props) {
         ) : (
           <View style={styles.attendanceTable}>
             <View style={styles.attendanceTableHeader}>
-              <View style={[styles.attendanceTableCell, styles.attendanceUserCell]}>
+              <View
+                style={[styles.attendanceTableCell, styles.attendanceUserCell]}
+              >
                 <Text style={styles.attendanceHeaderCell}>User</Text>
               </View>
 
@@ -217,21 +232,31 @@ export default function TodayAttendanceTable({ getUserName }: Props) {
               </View>
             </View>
 
-            {attendanceRows.map((row: any) => {
+            {visibleAttendanceRows.map((row: any) => {
               const activeTasks = row.activeTasks || [];
               const pendingTasks = row.pendingTasks || [];
               const completedTasks = row.completedTasks || [];
 
               return (
                 <View key={row.userId} style={styles.attendanceTableRow}>
-                  <View style={[styles.attendanceTableCell, styles.attendanceUserCell]}>
+                  <View
+                    style={[
+                      styles.attendanceTableCell,
+                      styles.attendanceUserCell,
+                    ]}
+                  >
                     <Text style={styles.managedUserName} numberOfLines={1}>
                       {getRowUserName(row)}
                     </Text>
                   </View>
 
                   {renderTaskCount(row, 'Active Tasks', activeTasks, 'active')}
-                  {renderTaskCount(row, 'Pending Tasks', pendingTasks, 'pending')}
+                  {renderTaskCount(
+                    row,
+                    'Pending Tasks',
+                    pendingTasks,
+                    'pending',
+                  )}
                   {renderTaskCount(row, 'Done Today', completedTasks, 'done')}
                 </View>
               );
@@ -263,7 +288,10 @@ export default function TodayAttendanceTable({ getUserName }: Props) {
                 <Text style={styles.attendanceTaskModalTitle}>
                   {taskModal?.title}
                 </Text>
-                <Text style={styles.attendanceTaskModalSubtitle} numberOfLines={1}>
+                <Text
+                  style={styles.attendanceTaskModalSubtitle}
+                  numberOfLines={1}
+                >
                   {taskModal?.userName}
                 </Text>
               </View>
@@ -277,7 +305,10 @@ export default function TodayAttendanceTable({ getUserName }: Props) {
             <ScrollView style={styles.attendanceTaskModalList}>
               {taskModal?.tasks.length ? (
                 taskModal.tasks.map((task: any, index: number) => (
-                  <View key={task.id || index} style={styles.attendanceTaskModalItem}>
+                  <View
+                    key={task.id || index}
+                    style={styles.attendanceTaskModalItem}
+                  >
                     <View style={styles.attendanceTaskModalIndex}>
                       <Text style={styles.attendanceTaskModalIndexText}>
                         {index + 1}

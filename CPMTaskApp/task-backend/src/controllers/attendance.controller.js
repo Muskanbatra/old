@@ -86,8 +86,10 @@ exports.getTodayReport = async (req, res) => {
     const end = new Date();
     end.setHours(23, 59, 59, 999);
 
-    const users = await Auth.find()
-      .select('_id name email')
+    const users = await Auth.find({
+      role: { $not: /^admin$/i },
+    })
+      .select('_id name email role')
       .lean();
 
     const attendance = await Attendance.find({
@@ -126,6 +128,7 @@ exports.getTodayReport = async (req, res) => {
       usersMap[String(user._id)] = {
         userId: String(user._id),
         userName: user.name || user.email || String(user._id),
+        role: user.role,
         attendance: [],
         completedTasks: [],
         activeTasks: [],
