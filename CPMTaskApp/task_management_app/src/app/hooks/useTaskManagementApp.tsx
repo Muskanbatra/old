@@ -803,6 +803,14 @@ export function useTaskManagementApp() {
     setLiveNotifications(prev => upsertNotification(prev, nextNotification));
   };
 
+  const getNotificationIdentityKey = (notification: AppNotification) =>
+    [
+      notification.type,
+      notification.taskId,
+      notification.title.trim().toLowerCase(),
+      notification.message.trim().toLowerCase(),
+    ].join('|');
+
   const visibleNotifications = useMemo(() => {
     if (!currentUser) {
       return [];
@@ -905,13 +913,20 @@ export function useTaskManagementApp() {
       }
     });
 
+    const seenNotificationKeys = new Set<string>();
     const mergedNotifications = [...liveNotifications, ...taskNotifications]
       .filter(isNotificationForCurrentUser)
       .reduce<AppNotification[]>((collection, notification) => {
-        if (collection.some(item => item.id === notification.id)) {
+        const notificationKey = getNotificationIdentityKey(notification);
+
+        if (
+          collection.some(item => item.id === notification.id) ||
+          seenNotificationKeys.has(notificationKey)
+        ) {
           return collection;
         }
 
+        seenNotificationKeys.add(notificationKey);
         collection.push({
           ...notification,
           read: readIdSet.has(notification.id) || notification.read,
