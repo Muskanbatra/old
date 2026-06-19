@@ -10,7 +10,7 @@ export const styles = StyleSheet.create({
     backgroundColor: COLORS.bg,
   },
   dashboardScroll: {
-    padding: 15,
+    padding: 10,
     paddingBottom: 108,
     backgroundColor: COLORS.bgSoft,
     gap: 16,

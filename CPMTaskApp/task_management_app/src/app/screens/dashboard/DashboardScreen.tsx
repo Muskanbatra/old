@@ -350,7 +350,7 @@ export function DashboardScreen(props: DashboardScreenProps) {
           <View style={styles.chartHighlightCard}>
             {/* <Text style={styles.chartHighlightEyebrow}>BEST DAY</Text> */}
             <View
-              style={{ flexDirection: 'row', alignItems: 'center', gap: 50 }}
+              style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}
             >
               <Text style={styles.chartHighlightValue}>
                 {selectedChartPoint.label}: {selectedChartPoint.completed} Tasks

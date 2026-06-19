@@ -2,6 +2,22 @@ import Geolocation from 'react-native-geolocation-service';
 
 import { PermissionsAndroid, Platform } from 'react-native';
 
+function formatLocationError(error: any) {
+  if (error?.message) {
+    return error.message;
+  }
+
+  if (error?.code === 2) {
+    return 'Location provider is unavailable. Please turn on device GPS and try again.';
+  }
+
+  if (error?.code === 3) {
+    return 'Location request timed out. Please try again near an open area.';
+  }
+
+  return 'Unable to get current location. Please turn on GPS and allow location permission.';
+}
+
 async function requestPermission() {
   if (Platform.OS === 'android') {
     const granted = await PermissionsAndroid.request(
@@ -18,7 +34,7 @@ export async function getCurrentLocation() {
   const allowed = await requestPermission();
 
   if (!allowed) {
-    throw new Error('Location permission not granted');
+    throw new Error('Location permission not granted.');
   }
 
   return new Promise<any>((resolve, reject) => {
@@ -31,7 +47,7 @@ export async function getCurrentLocation() {
         });
       },
 
-      error => reject(error),
+      error => reject(new Error(formatLocationError(error))),
 
       {
         enableHighAccuracy: true,

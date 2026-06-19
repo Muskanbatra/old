@@ -102,24 +102,58 @@ export default function AttendanceScreen({ userId }: AttendanceScreenProps) {
     };
   }, []);
 
-  async function handleCheckIn() {
+  async function getAttendanceLocation() {
     try {
-      const location = await getCurrentLocation();
+      return await getCurrentLocation();
+    } catch (error) {
+      if (BYPASS_LOCATION_CHECK) {
+        console.log('Attendance location unavailable', error);
+        return null;
+      }
 
-      const distance = calculateDistance(
-        location.latitude,
+      throw error;
+    }
+  }
 
-        location.longitude,
+  function showAttendanceError(error: unknown) {
+    const message = error instanceof Error ? error.message : String(error || '');
 
-        OFFICE_LOCATION.latitude,
-
-        OFFICE_LOCATION.longitude,
+    if (message === 'Network Error') {
+      Alert.alert(
+        'Network Error',
+        'Unable to connect to the attendance server. Please check internet connection and try again.',
       );
 
-      if (!BYPASS_LOCATION_CHECK && distance > OFFICE_LOCATION.allowedRadius) {
-        Alert.alert('Outside office area');
+      return;
+    }
 
-        return;
+    Alert.alert(
+      'Attendance Error',
+      message ||
+        'Unable to get current location. Please turn on GPS and allow location permission.',
+    );
+  }
+
+  async function handleCheckIn() {
+    try {
+      const location = await getAttendanceLocation();
+
+      if (location) {
+        const distance = calculateDistance(
+          location.latitude,
+
+          location.longitude,
+
+          OFFICE_LOCATION.latitude,
+
+          OFFICE_LOCATION.longitude,
+        );
+
+        if (!BYPASS_LOCATION_CHECK && distance > OFFICE_LOCATION.allowedRadius) {
+          Alert.alert('Outside office area');
+
+          return;
+        }
       }
 
       await attendanceService.checkIn({
@@ -136,17 +170,13 @@ export default function AttendanceScreen({ userId }: AttendanceScreenProps) {
 
       showSuccessModal('Checked In');
     } catch (error) {
-      Alert.alert(
-        'Location Error',
-
-        String(error),
-      );
+      showAttendanceError(error);
     }
   }
 
   async function handleCheckOut() {
     try {
-      const location = await getCurrentLocation();
+      const location = await getAttendanceLocation();
 
       await attendanceService.checkOut({
         userId,
@@ -162,11 +192,7 @@ export default function AttendanceScreen({ userId }: AttendanceScreenProps) {
 
       showSuccessModal('Checked Out');
     } catch (error) {
-      Alert.alert(
-        'Error',
-
-        String(error),
-      );
+      showAttendanceError(error);
     }
   }
 

@@ -1,37 +1,37 @@
 import axios from 'axios';
 
-const BASE_URL = 'http://10.0.2.2:5002/api/v2';
+import { API_BASE_URL } from '../api/client';
 
 export const attendanceService = {
   checkIn: (data: any) => {
     return axios.post(
-      `${BASE_URL}/attendance/checkin`,
+      `${API_BASE_URL}/attendance/checkin`,
       data,
     );
   },
 
   checkOut: (data: any) => {
     return axios.put(
-      `${BASE_URL}/attendance/checkout`,
+      `${API_BASE_URL}/attendance/checkout`,
       data,
     );
   },
 
   getTodayAttendance: () => {
     return axios.get(
-      `${BASE_URL}/attendance/today`,
+      `${API_BASE_URL}/attendance/today`,
     );
   },
 
   getAttendanceStatus: (userId: any) => {
     return axios.get(
-      `${BASE_URL}/attendance/status/${userId}`
+      `${API_BASE_URL}/attendance/status/${userId}`
     );
   },
 
   getTodayReport: () => {
     return axios.get(
-      `${BASE_URL}/attendance/today-report`
+      `${API_BASE_URL}/attendance/today-report`
     );
   },
 };
