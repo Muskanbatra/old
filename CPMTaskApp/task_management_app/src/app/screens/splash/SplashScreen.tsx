@@ -103,7 +103,7 @@ export function SplashScreen({ progress }: { progress: number }) {
               ]}
             />
           </Animated.View>
-          <Text style={styles.splashTitle}>TaskFlow</Text>
+          <Text style={styles.splashTitle}>ManageMan</Text>
           <Text style={styles.splashSubtitle}>
             Manage Your Tasks, Master Your Time
           </Text>

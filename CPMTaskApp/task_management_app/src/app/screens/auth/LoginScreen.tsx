@@ -57,7 +57,7 @@ export function LoginScreen(props: LoginScreenProps) {
               </View>
               <Text style={styles.loginTitle}>Welcome Back</Text>
               <Text style={styles.loginSubtitle}>
-                Sign in to continue to TaskFlow
+                Sign in to continue to ManageMan
               </Text>
             </View>
             {loginError ? (
