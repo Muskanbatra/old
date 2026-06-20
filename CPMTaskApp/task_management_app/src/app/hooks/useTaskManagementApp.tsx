@@ -2459,9 +2459,23 @@ export function useTaskManagementApp() {
     },
   );
 
-  const handlePushTokenRefresh = useEffectEvent((token: string) => {
-    setPushToken(token);
-  });
+ const handlePushTokenRefresh = useEffectEvent(async (token: string) => {
+  setPushToken(token);
+
+  const savedToken = await AsyncStorage.getItem('authToken');
+
+  if (savedToken) {
+    await apiRequest('/auth/save_fcm_token', {
+      method: 'PUT',
+      headers: {
+        Authorization: `Bearer ${savedToken}`,
+      },
+      body: JSON.stringify({
+        fcmToken: token,
+      }),
+    });
+  }
+});
 
   const markAllNotificationsRead = () => {
     setReadNotificationIds(prev => {

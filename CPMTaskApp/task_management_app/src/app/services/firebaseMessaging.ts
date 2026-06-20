@@ -1,6 +1,6 @@
 import { PermissionsAndroid, Platform } from 'react-native';
 import type { AppNotification, Screen } from '../domain/model';
-
+import notifee, { AndroidImportance } from '@notifee/react-native';
 export type PushNotificationStatus = 'pending' | 'enabled' | 'blocked' | 'error';
 
 type PushSetupHandlers = {
@@ -98,6 +98,26 @@ function getTargetScreen(remoteMessage: RemoteMessage): Screen | undefined {
   }
 
   return value as Screen;
+}
+async function showLocalNotification(title: string, body: string, data?: any) {
+  const channelId = await notifee.createChannel({
+    id: 'task-updates',
+    name: 'Task Updates',
+    importance: AndroidImportance.HIGH,
+  });
+
+  await notifee.displayNotification({
+    title,
+    body,
+    data,
+    android: {
+      channelId,
+      importance: AndroidImportance.HIGH,
+      pressAction: {
+        id: 'default',
+      },
+    },
+  });
 }
 
 export function mapRemoteMessageToAppNotification(
@@ -200,11 +220,23 @@ console.log("FCM TOKEN:", token);
 
 handlers.onToken(token);
   const unsubscribeOnMessage = messagingModule.onMessage(
-    messagingModule.messaging,
-    remoteMessage => {
-      handlers.onMessage(mapRemoteMessageToAppNotification(remoteMessage));
-    },
-  );
+  messagingModule.messaging,
+  remoteMessage => {
+    const notification = mapRemoteMessageToAppNotification(remoteMessage);
+
+    handlers.onMessage(notification);
+
+    showLocalNotification(
+      notification.title,
+      notification.message,
+      {
+        taskId: notification.taskId,
+        type: notification.type,
+        targetScreen: notification.targetScreen ?? 'notifications',
+      },
+    );
+  },
+);
 
   const unsubscribeOnOpen = messagingModule.onNotificationOpenedApp(
     messagingModule.messaging,

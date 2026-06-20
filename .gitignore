@@ -92,4 +92,6 @@ CPMTaskApp/task_management_app/android/build/
 **/metadata_generation_command.txt
 
 # Kotlin compiler temp files
-**/kotlin-compiler-*.salive
+**/kotlin-compiler-*.saliveCPMTaskApp/task-backend/config/firebase-service-account.json
+CPMTaskApp/task-backend/config/firebase-service-account.json
+**/firebase-service-account.json
